@@ -96,5 +96,3 @@ if 'df' in locals() and not df.empty:
                     max_tokens=150,
                     temperature=0.8,
                 )
-
-
