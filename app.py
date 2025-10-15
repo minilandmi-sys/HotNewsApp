@@ -4,6 +4,10 @@ import pandas as pd
 from datetime import datetime
 import time
 from io import BytesIO
+import openai  # ✅ 新增這行
+
+# ✅ 設定 OpenAI 金鑰（從 Secrets 讀取）
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 # 4 個網站的 RSS
 RSS_FEEDS = {
@@ -76,3 +80,28 @@ if st.button("📊 產生最新報表"):
             file_name=filename,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+# ================= 自動產生社群文案功能 =================
+st.markdown("---")
+st.subheader("✏️ 自動生成社群文案草稿")
+
+# 如果有報表，允許使用者選文章
+if 'df' in locals() and not df.empty:
+    selected_title = st.selectbox("選擇一篇文章產生文案：", df["標題"])
+    if st.button("✨ 生成社群文案"):
+        with st.spinner("AI 正在撰寫文案中..."):
+            try:
+                prompt = f"請幫我為以下文章標題撰寫一段 Facebook 貼文文案，風格要自然有趣，語氣輕鬆、可加入 emoji：\n\n標題：{selected_title}"
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=150,
+                    temperature=0.8,
+                )
+                ai_text = response["choices"][0]["message"]["content"].strip()
+                st.success("✅ 生成完成！")
+                st.write(ai_text)
+            except Exception as e:
+                st.error(f"⚠️ 生成失敗：{e}")
+else:
+    st.info("請先點上面的按鈕產生報表，再使用此功能。")
+
