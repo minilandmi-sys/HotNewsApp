@@ -78,9 +78,9 @@ def get_font(size, bold=False):
         # 若找不到特定字體，使用預設字體
         return ImageFont.load_default()
 
-def generate_visual_content(title, meme_text, ratio='1:1', uploaded_file=None): # 新增 uploaded_file 參數
+def generate_visual_content(title, ratio='1:1', uploaded_file=None): # 已移除 meme_text
     """
-    使用 Pillow 函式庫，在伺服器端生成帶有梗圖文字的圖片。
+    使用 Pillow 函式庫，在伺服器端生成帶有文章標題的圖片模板。
     """
     # 定義尺寸
     WIDTH = 1000
@@ -146,53 +146,29 @@ def generate_visual_content(title, meme_text, ratio='1:1', uploaded_file=None): 
                   fill="#ffffff", 
                   font=article_font, 
                   anchor="mt") # 使用 'mt' 錨點進行頂部置中對齊
-
-    # --- 繪製梗圖文字 (白字黑邊效果) ---
-    if meme_text:
-        meme_size = int(WIDTH / 12)
-        y_pos = HEIGHT * 0.85
-        meme_font = get_font(meme_size, bold=True)
-        
-        # 模擬黑邊效果
-        outline_width = 3 
-        outline_color = "black"
-        
-        # 繪製黑邊
-        for x_offset in range(-outline_width, outline_width + 1):
-            for y_offset in range(-outline_width, outline_width + 1):
-                if x_offset != 0 or y_offset != 0:
-                    draw.text((WIDTH / 2 + x_offset, y_pos + y_offset), 
-                              meme_text.upper(), 
-                              font=meme_font, 
-                              fill=outline_color, 
-                              anchor="ms")
-        
-        # 繪製白色主體
-        draw.text((WIDTH / 2, y_pos), 
-                  meme_text.upper(), 
-                  font=meme_font, 
-                  fill="white", 
-                  anchor="ms")
+    
+    # *** 已移除繪製梗圖文字 (meme_text) 的相關邏輯 ***
 
     return img
 
 # ================= 模組 3：AI 文案優化邏輯 (使用 Gemini API) =================
 
-def generate_ai_copy(article_title, meme_text):
+def generate_ai_copy(article_title): # 已移除 meme_text
     """
-    使用 Gemini API 生成 3 份針對社群貼文優化的標題。
+    使用 Gemini API 生成 3 份針對社群貼文優化的標題，僅依賴文章標題。
     NOTE: 若出現 400 錯誤，請檢查您的 GEMINI_API_KEY 是否有效且具有足夠權限。
     """
     if not API_KEY:
         return "API 金鑰未設定，無法呼叫 Gemini API。"
         
-    if not article_title or not meme_text:
+    if not article_title: # 僅檢查 article_title
         return None
 
     # 系統指令：設定為機智的台灣社群編輯 (已修改為生成標題)
-    system_prompt = "Act as a witty Taiwanese social media editor (社群小編). Your output must be in Traditional Chinese. Based on the article title and the visual meme text provided by the user, generate 3 different, highly engaging, and clickable article titles/headlines ( suitable for a blog or social media post). Each title should be concise and separated by a single line break. Format your response using Markdown bullet points (*), NOT numbered lists."
+    system_prompt = "Act as a witty Taiwanese social media editor (社群小編). Your output must be in Traditional Chinese. Based on the article title provided by the user, generate 3 different, highly engaging, and clickable article titles/headlines ( suitable for a blog or social media post). Each title should be concise and separated by a single line break. Format your response using Markdown bullet points (*), NOT numbered lists."
             
-    user_query = f"請根據以下資訊生成 3 份優化的社群標題:\n\n文章標題 (核心資訊): {article_title}\n視覺文案 (梗圖文字): {meme_text}"
+    # 查詢內容：僅使用文章標題
+    user_query = f"請根據以下資訊生成 3 份優化的社群標題:\n\n文章標題 (核心資訊): {article_title}"
 
     headers = {
         "Content-Type": "application/json",
@@ -276,7 +252,7 @@ else:
 # ================= 社群內容加速器 (新增模組) =================
 st.markdown("---")
 st.header("🚀 社群內容加速器")
-st.markdown("使用熱點文章標題，快速製作梗圖視覺與優化標題！") # 修正文案為標題
+st.markdown("使用熱點文章標題，快速製作圖片視覺與優化標題！") # 修正文案
 
 # --- 模組 1: 文章輸入與比例選擇 ---
 # 將上傳圖片功能與比例選擇放在同一欄
@@ -300,12 +276,8 @@ with st.container():
         else:
             article_title = st.text_input("手動輸入文章標題 (請先產生報表):", value="", key="title_manual_only")
         
-        # 模組 3: 視覺化文案輸入
-        meme_text = st.text_area("視覺化文案 (梗圖文字):", 
-                                  value="", 
-                                  height=100,
-                                  placeholder="輸入要疊加在圖片上的標語或梗圖文字，例如：好險有跟到這波熱點！")
-    
+        # *** 已移除 meme_text 的輸入框 ***
+        
     with col2:
         # 模組 2: 比例選擇
         st.markdown("##### 貼文比例選擇")
@@ -321,8 +293,8 @@ with st.container():
 
 # --- 模組 2: 視覺模板預覽 ---
 st.markdown("#### 🖼️ 視覺模板預覽")
-# 呼叫函式時傳入上傳的檔案
-visual_img = generate_visual_content(article_title, meme_text, ratio, uploaded_file)
+# 呼叫函式時已移除 meme_text
+visual_img = generate_visual_content(article_title, ratio, uploaded_file)
 st.image(visual_img, caption="視覺內容預覽 (由 Pillow 模擬 Canvas 繪製，已支援長標題換行與自訂背景)", use_column_width='auto')
 
 # --- 下載按鈕 (只留 JPG) ---
@@ -333,7 +305,7 @@ visual_img.save(img_byte_arr_jpg, format='JPEG', quality=95) # quality=95 以確
 st.download_button(
     label="⬇️ 下載成品 (JPG)",
     data=img_byte_arr_jpg.getvalue(),
-    file_name=f"{article_title[:10].replace('/', '_')}_meme.jpg",
+    file_name=f"{article_title[:10].replace('/', '_')}_image.jpg",
     mime="image/jpeg"
 )
 
@@ -342,12 +314,13 @@ st.markdown("---")
 st.subheader("🤖 AI 社群標題優化 (生成 3 份標題)") # 修正文案為標題
 
 if st.button("✨ 生成優化社群標題", key="generate_new_copy_btn"): # 修正文案為標題
-    if not article_title or not meme_text:
-        st.error("⚠️ 請確認已輸入**文章標題**和**梗圖文字**。")
+    if not article_title: # 僅檢查文章標題
+        st.error("⚠️ 請確認已輸入**文章標題**。")
     else:
         with st.spinner("AI 正在根據您的輸入撰寫 3 份優化標題中..."): # 修正文案為標題
             try:
-                ai_text = generate_ai_copy(article_title, meme_text)
+                # 呼叫函式時已移除 meme_text
+                ai_text = generate_ai_copy(article_title)
                 if ai_text:
                     st.session_state.accelerator_copy = ai_text # 儲存新標題
             except Exception as e:
