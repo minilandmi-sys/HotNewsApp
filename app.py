@@ -83,13 +83,21 @@ if st.button("📊 產生最新報表"):
 st.markdown("---")
 st.subheader("✏️ 自動生成社群文案草稿")
 
-# 如果有報表，允許使用者選文章
+# 將報表結果存在 session_state（避免被重置）
+if 'df' not in st.session_state:
+    st.session_state.df = pd.DataFrame()
+
+# 若剛產生報表 → 更新 session_state
 if 'df' in locals() and not df.empty:
-    selected_title = st.selectbox("選擇一篇文章產生文案：", df["標題"])
+    st.session_state.df = df
+
+# 使用 session_state 中的資料
+if not st.session_state.df.empty:
+    selected_title = st.selectbox("選擇一篇文章產生文案：", st.session_state.df["標題"])
     if st.button("✨ 生成社群文案"):
         with st.spinner("AI 正在撰寫文案中..."):
             try:
-                prompt = f"請幫我為以下文章標題撰寫一段 Facebook 貼文文案，風格要自然有趣，語氣輕鬆、可加入 emoji：\n\n標題：{selected_title}"
+                prompt = f"請幫我為以下文章標題撰寫一段 Facebook 貼文文案，風格自然有趣，語氣輕鬆並加入 emoji：\n\n標題：{selected_title}"
 
                 response = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
@@ -98,12 +106,14 @@ if 'df' in locals() and not df.empty:
                     temperature=0.8,
                 )
 
-                ai_text = response.choices[0].message.content.strip()
-                st.success("✅ 文案生成完成！")
-                st.write(ai_text)
+                st.session_state.generated_text = response.choices[0].message.content.strip()
 
             except Exception as e:
                 st.error(f"❌ 發生錯誤：{e}")
+
+# 顯示 AI 生成結果（不會被刷新消失）
+if 'generated_text' in st.session_state:
+    st.success("✅ 文案生成完成！")
+    st.write(st.session_state.generated_text)
 else:
     st.info("請先按上方按鈕產生報表後，再使用文案生成功能。")
-
