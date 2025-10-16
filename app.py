@@ -8,7 +8,7 @@ import requests # 新增：用於呼叫 Gemini API
 from PIL import Image, ImageDraw, ImageFont 
 
 # ================= LLM API 設定 (已轉換為 Gemini) =================
-GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025"
+GEMINI_MODEL = "gemini-2.5-flash" # 已更新為正式版本
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 
 # 嘗試讀取 GEMINI API 金鑰
@@ -180,7 +180,7 @@ def generate_visual_content(title, meme_text, ratio='1:1', uploaded_file=None): 
 
 def generate_ai_copy(article_title, meme_text):
     """
-    使用 Gemini API 生成 3 份針對社群貼文優化的文案草稿。
+    使用 Gemini API 生成 3 份針對社群貼文優化的標題。
     NOTE: 若出現 400 錯誤，請檢查您的 GEMINI_API_KEY 是否有效且具有足夠權限。
     """
     if not API_KEY:
@@ -189,10 +189,10 @@ def generate_ai_copy(article_title, meme_text):
     if not article_title or not meme_text:
         return None
 
-    # 系統指令：設定為機智的台灣社群編輯
-    system_prompt = "Act as a witty Taiwanese social media editor (社群小編). Your output must be in Traditional Chinese. Based on the article title and the visual meme text provided by the user, write 3 unique, engaging, and concise social media captions (suitable for FB/IG). Each draft must use appropriate emojis, line breaks, and clearly target the '跟風' (following the trend) and '互動' (engagement) effect. Format your response using Markdown bullet points (*), NOT numbered lists, and ensure each draft is separated by two line breaks."
+    # 系統指令：設定為機智的台灣社群編輯 (已修改為生成標題)
+    system_prompt = "Act as a witty Taiwanese social media editor (社群小編). Your output must be in Traditional Chinese. Based on the article title and the visual meme text provided by the user, generate 3 different, highly engaging, and clickable article titles/headlines ( suitable for a blog or social media post). Each title should be concise and separated by a single line break. Format your response using Markdown bullet points (*), NOT numbered lists."
             
-    user_query = f"請根據以下資訊生成 3 份社群文案草稿:\n\n文章標題 (核心資訊): {article_title}\n視覺文案 (梗圖文字): {meme_text}"
+    user_query = f"請根據以下資訊生成 3 份優化的社群標題:\n\n文章標題 (核心資訊): {article_title}\n視覺文案 (梗圖文字): {meme_text}"
 
     headers = {
         "Content-Type": "application/json",
@@ -276,7 +276,7 @@ else:
 # ================= 社群內容加速器 (新增模組) =================
 st.markdown("---")
 st.header("🚀 社群內容加速器")
-st.markdown("使用熱點文章標題，快速製作梗圖視覺與優化文案！")
+st.markdown("使用熱點文章標題，快速製作梗圖視覺與優化標題！") # 修正文案為標題
 
 # --- 模組 1: 文章輸入與比例選擇 ---
 # 將上傳圖片功能與比例選擇放在同一欄
@@ -339,23 +339,23 @@ st.download_button(
 
 # --- 模組 3: AI 文案優化 ---
 st.markdown("---")
-st.subheader("🤖 AI 社群文案優化 (生成 3 份草稿)")
+st.subheader("🤖 AI 社群標題優化 (生成 3 份標題)") # 修正文案為標題
 
-if st.button("✨ 生成優化社群文案", key="generate_new_copy_btn"):
+if st.button("✨ 生成優化社群標題", key="generate_new_copy_btn"): # 修正文案為標題
     if not article_title or not meme_text:
         st.error("⚠️ 請確認已輸入**文章標題**和**梗圖文字**。")
     else:
-        with st.spinner("AI 正在根據您的輸入撰寫 3 份優化文案中..."):
+        with st.spinner("AI 正在根據您的輸入撰寫 3 份優化標題中..."): # 修正文案為標題
             try:
                 ai_text = generate_ai_copy(article_title, meme_text)
                 if ai_text:
-                    st.session_state.accelerator_copy = ai_text # 儲存新文案
+                    st.session_state.accelerator_copy = ai_text # 儲存新標題
             except Exception as e:
                 # 錯誤處理已在 generate_ai_copy 內部完成
                 pass
 
 # 顯示 AI 生成結果
 if 'accelerator_copy' in st.session_state and st.session_state.accelerator_copy:
-    st.success("✅ 3 份優化文案生成完成！")
+    st.success("✅ 3 份優化標題生成完成！") # 修正文案為標題
     # 將 Markdown 格式的結果 (如 *) 渲染出來
     st.markdown(st.session_state.accelerator_copy)
