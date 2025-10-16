@@ -90,9 +90,20 @@ if 'df' in locals() and not df.empty:
         with st.spinner("AI 正在撰寫文案中..."):
             try:
                 prompt = f"請幫我為以下文章標題撰寫一段 Facebook 貼文文案，風格要自然有趣，語氣輕鬆、可加入 emoji：\n\n標題：{selected_title}"
+
                 response = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
                     messages=[{"role": "user", "content": prompt}],
                     max_tokens=150,
                     temperature=0.8,
                 )
+
+                ai_text = response.choices[0].message.content.strip()
+                st.success("✅ 文案生成完成！")
+                st.write(ai_text)
+
+            except Exception as e:
+                st.error(f"❌ 發生錯誤：{e}")
+else:
+    st.info("請先按上方按鈕產生報表後，再使用文案生成功能。")
+
