@@ -9,14 +9,6 @@ import openai  # ✅ 這行一定要先加上
 # 設定 OpenAI 金鑰（從 Secrets 讀取）
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-response = client.chat.completions.create(
-    model="gpt-3.5-turbo",
-    messages=[{"role": "user", "content": prompt}],
-    max_tokens=150,
-    temperature=0.8,
-)
-
-st.session_state.generated_text = response.choices[0].message.content.strip()
 # 4 個網站的 RSS
 RSS_FEEDS = {
     "妞新聞": "https://www.niusnews.com/feed",
@@ -129,5 +121,6 @@ if 'generated_text' in st.session_state:
     st.write(st.session_state.generated_text)
 else:
     st.info("請先按上方按鈕產生報表後，再使用文案生成功能。")
+
 
 
