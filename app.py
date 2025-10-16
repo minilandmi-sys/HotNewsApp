@@ -4,9 +4,11 @@ import pandas as pd
 from datetime import datetime
 import time
 from io import BytesIO
-from openai import OpenAI  # ✅ 正確匯入位置
+from openai import OpenAI
+from PIL import Image, ImageDraw, ImageFont # 新增：用於伺服器端圖片生成
 
 # 設定 OpenAI 金鑰（從 Secrets 讀取）
+# 確保 st.secrets["OPENAI_API_KEY"] 已在您的 Streamlit 專案中設定
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # 4 個網站的 RSS
@@ -16,6 +18,8 @@ RSS_FEEDS = {
     "BEAUTY美人圈": "https://www.beauty321.com/feed_pin",
     "A Day Magazine": "https://www.adaymag.com/feed"
 }
+
+# ================= 輔助函式 (原有的 RSS 處理) =================
 
 def parse_entries(entries):
     parsed_list = []
@@ -54,11 +58,141 @@ def fetch_top5_each_site():
     all_entries.sort(key=lambda x: x["發佈時間"], reverse=True)
     return pd.DataFrame(all_entries)
 
-# ================= Streamlit UI =================
+# ================= 模組 2 & 3：視覺內容生成 (Pillow 實現) =================
+
+def get_font(size, bold=False):
+    """嘗試載入常見字體，若失敗則回傳預設字體"""
+    try:
+        # 模擬 Impact 或 Arial Bold 作為梗圖字體
+        # Note: 在實際部署環境中，您可能需要提供 'Impact.ttf' 或 CJK 字體檔案
+        font_name = "arial.ttf" if not bold else "arialbd.ttf"
+        return ImageFont.truetype(font_name, size)
+    except IOError:
+        # 若找不到特定字體，使用預設字體
+        return ImageFont.load_default()
+
+def generate_visual_content(title, meme_text, ratio='1:1'):
+    """
+    使用 Pillow 函式庫，在伺服器端生成帶有梗圖文字的圖片。
+    """
+    # 定義尺寸
+    WIDTH = 1000
+    HEIGHT = 1778 if ratio == '9:16' else 1000
+    
+    # 建立基礎圖片 (藍色背景作為模板)
+    img = Image.new('RGB', (WIDTH, HEIGHT), color='#1e3a8a')
+    draw = ImageDraw.Draw(img)
+
+    # --- 繪製模板標題與文章標題 ---
+    title_size = int(WIDTH / 35)
+    article_size = int(WIDTH / 50)
+    
+    title_font = get_font(title_size, bold=True)
+    article_font = get_font(article_size, bold=False)
+
+    # 模板標題 (保持單行置中)
+    draw.text((WIDTH / 2, HEIGHT * 0.08), 
+              "【社群內容加速器】視覺模板", 
+              fill="#ffffff", 
+              font=title_font, 
+              anchor="mm")
+    
+    # 文章標題 - 實現多行自動換行 (使用簡易字元限制)
+    article_to_display = title or "請輸入文章標題以跟風熱點..."
+    
+    # 針對中文標題，每行限制大約 30 個字元 (粗略估計 80% 寬度)
+    CHAR_LIMIT = 30 
+    lines = []
+    current_line = ""
+    
+    # 處理標題換行
+    for char in article_to_display:
+        # 這裡使用 len() 模擬字元數限制，而非精準的像素計算
+        if len(current_line) < CHAR_LIMIT:
+            current_line += char
+        else:
+            lines.append(current_line)
+            current_line = char
+    lines.append(current_line) # Add the last line
+
+    lines = [line.strip() for line in lines if line.strip()] # 清理空白行
+
+    y_start = HEIGHT * 0.15 # 換行文字起始 Y 座標
+    line_height = article_size * 1.5 # 行距
+
+    # 繪製 wrapped 文章標題
+    for i, line in enumerate(lines):
+        draw.text((WIDTH / 2, y_start + i * line_height), 
+                  line, 
+                  fill="#ffffff", 
+                  font=article_font, 
+                  anchor="mt") # 使用 'mt' 錨點進行頂部置中對齊
+
+    # --- 繪製梗圖文字 (白字黑邊效果) ---
+    if meme_text:
+        meme_size = int(WIDTH / 12)
+        y_pos = HEIGHT * 0.85
+        meme_font = get_font(meme_size, bold=True)
+        
+        # 模擬黑邊效果
+        outline_width = 3 
+        outline_color = "black"
+        
+        # 繪製黑邊
+        for x_offset in range(-outline_width, outline_width + 1):
+            for y_offset in range(-outline_width, outline_width + 1):
+                if x_offset != 0 or y_offset != 0:
+                    draw.text((WIDTH / 2 + x_offset, y_pos + y_offset), 
+                              meme_text.upper(), 
+                              font=meme_font, 
+                              fill=outline_color, 
+                              anchor="ms")
+        
+        # 繪製白色主體
+        draw.text((WIDTH / 2, y_pos), 
+                  meme_text.upper(), 
+                  font=meme_font, 
+                  fill="white", 
+                  anchor="ms")
+
+    return img
+
+# ================= 模組 3：AI 文案優化邏輯 (使用 OpenAI) =================
+
+def generate_ai_copy(article_title, meme_text):
+    """
+    使用 OpenAI 生成 3 份針對社群貼文優化的文案草稿。
+    """
+    if not article_title or not meme_text:
+        return None
+
+    # 系統指令：設定為機智的台灣社群編輯
+    system_prompt = "Act as a witty Taiwanese social media editor (社群小編). Your output must be in Traditional Chinese. Based on the article title and the visual meme text provided by the user, write 3 unique, engaging, and concise social media captions (suitable for FB/IG). Each draft must use appropriate emojis, line breaks, and clearly target the '跟風' (following the trend) and '互動' (engagement) effect. Format your response using Markdown bullet points (*), NOT numbered lists, and ensure each draft is separated by two line breaks."
+            
+    user_query = f"請根據以下資訊生成 3 份社群文案草稿:\n\n文章標題 (核心資訊): {article_title}\n視覺文案 (梗圖文字): {meme_text}"
+
+    # 使用現有的 OpenAI client setup
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_query}
+        ],
+        max_tokens=500, 
+        temperature=0.7,
+    )
+    return response.choices[0].message.content.strip()
+
+
+# ================= Streamlit UI (主程式) =================
+
 st.title("📰 熱門新聞報表工具 (RSS)")
 
+# 報表產生區 (維持原有邏輯)
 if st.button("📊 產生最新報表"):
     df = fetch_top5_each_site()
+    st.session_state.df = df # 將 DataFrame 存入 session_state
+    
     if df.empty:
         st.warning("⚠️ 沒有抓到任何文章。")
     else:
@@ -80,41 +214,99 @@ if st.button("📊 產生最新報表"):
             file_name=filename,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-
-# ================= 自動產生社群文案功能 =================
-st.markdown("---")
-st.subheader("✏️ 自動生成社群文案草稿")
-
-# 將報表結果存在 session_state（避免被重置）
-if 'df' not in st.session_state:
-    st.session_state.df = pd.DataFrame()
-
-# 若剛產生報表 → 更新 session_state
-if 'df' in locals() and not df.empty:
-    st.session_state.df = df
-
-# 使用 session_state 中的資料
-if not st.session_state.df.empty:
-    selected_title = st.selectbox("選擇一篇文章產生文案：", st.session_state.df["標題"])
-    if st.button("✨ 生成社群文案"):
-        with st.spinner("AI 正在撰寫文案中..."):
-            try:
-                prompt = f"請幫我為以下文章標題撰寫一段 Facebook 貼文文案，風格自然有趣、語氣輕鬆並加入 emoji：\n\n標題：{selected_title}"
-
-                response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=150,
-                    temperature=0.8,
-                )
-
-                st.session_state.generated_text = response.choices[0].message.content.strip()
-            except Exception as e:
-                st.error(f"⚠️ 發生錯誤：{e}")
-
-# 顯示 AI 生成結果（不會被刷新消失）
-if 'generated_text' in st.session_state:
-    st.success("✅ 文案生成完成！")
-    st.write(st.session_state.generated_text)
 else:
-    st.info("請先按上方按鈕產生報表後，再使用文案生成功能。")
+    # 確保 session_state.df 在第一次執行時存在
+    if 'df' not in st.session_state:
+        st.session_state.df = pd.DataFrame()
+
+
+# ================= 社群內容加速器 (新增模組) =================
+st.markdown("---")
+st.header("🚀 社群內容加速器")
+st.markdown("使用熱點文章標題，快速製作梗圖視覺與優化文案！")
+
+# --- 模組 1: 文章輸入與比例選擇 ---
+with st.container():
+    col1, col2 = st.columns([2, 1])
+
+    with col1:
+        # 模組 1: 文章標題輸入 (從報表選擇或手動輸入)
+        if not st.session_state.df.empty:
+            titles = ["--- 手動輸入 ---"] + st.session_state.df["標題"].tolist()
+            selected_title_option = st.selectbox(
+                "選擇或輸入熱點文章標題：", 
+                titles, 
+                key="title_select"
+            )
+            
+            if selected_title_option == "--- 手動輸入 ---":
+                article_title = st.text_input("或手動輸入文章標題:", value="", key="title_manual")
+            else:
+                article_title = selected_title_option
+        else:
+            article_title = st.text_input("手動輸入文章標題 (請先產生報表):", value="", key="title_manual_only")
+        
+        # 模組 3: 視覺化文案輸入
+        meme_text = st.text_area("視覺化文案 (梗圖文字):", 
+                                  value="", 
+                                  height=100,
+                                  placeholder="輸入要疊加在圖片上的標語或梗圖文字，例如：好險有跟到這波熱點！")
+    
+    with col2:
+        # 模組 2: 比例選擇
+        st.markdown("##### 貼文比例選擇")
+        ratio = st.radio(
+            "選擇圖片比例：",
+            ('1:1', '9:16'),
+            key='ratio_select',
+            horizontal=True
+        )
+
+# --- 模組 2: 視覺模板預覽 ---
+st.markdown("#### 🖼️ 視覺模板預覽")
+visual_img = generate_visual_content(article_title, meme_text, ratio)
+st.image(visual_img, caption="視覺內容預覽 (由 Pillow 模擬 Canvas 繪製，已支援長標題換行)", use_column_width='auto')
+
+# --- 下載按鈕 (PNG/JPG) ---
+col_download1, col_download2 = st.columns(2)
+
+# PNG 下載
+img_byte_arr_png = BytesIO()
+visual_img.save(img_byte_arr_png, format='PNG')
+col_download1.download_button(
+    label="⬇️ 下載成品 (PNG)",
+    data=img_byte_arr_png.getvalue(),
+    file_name=f"{article_title[:10].replace('/', '_')}_meme.png",
+    mime="image/png"
+)
+
+# JPG 下載
+img_byte_arr_jpg = BytesIO()
+visual_img.save(img_byte_arr_jpg, format='JPEG')
+col_download2.download_button(
+    label="⬇️ 下載成品 (JPG)",
+    data=img_byte_arr_jpg.getvalue(),
+    file_name=f"{article_title[:10].replace('/', '_')}_meme.jpg",
+    mime="image/jpeg"
+)
+
+# --- 模組 3: AI 文案優化 ---
+st.markdown("---")
+st.subheader("🤖 AI 社群文案優化 (生成 3 份草稿)")
+
+if st.button("✨ 生成優化社群文案", key="generate_new_copy_btn"):
+    if not article_title or not meme_text:
+        st.error("⚠️ 請確認已輸入**文章標題**和**梗圖文字**。")
+    else:
+        with st.spinner("AI 正在根據您的輸入撰寫 3 份優化文案中..."):
+            try:
+                ai_text = generate_ai_copy(article_title, meme_text)
+                st.session_state.accelerator_copy = ai_text # 儲存新文案
+            except Exception as e:
+                st.error(f"⚠️ OpenAI 發生錯誤：{e}")
+
+# 顯示 AI 生成結果
+if 'accelerator_copy' in st.session_state and st.session_state.accelerator_copy:
+    st.success("✅ 3 份優化文案生成完成！")
+    # 將 Markdown 格式的結果 (如 *) 渲染出來
+    st.markdown(st.session_state.accelerator_copy)
