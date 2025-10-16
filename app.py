@@ -84,7 +84,8 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None): # 已移除
     """
     # 定義尺寸
     WIDTH = 1000
-    HEIGHT = 1778 if ratio == '9:16' else 1000
+    # 根據新的比例設定高度：1:1 為 1000, 4:3 為 750 (1000 * 3 / 4)
+    HEIGHT = 750 if ratio == '4:3' else 1000
     
     if uploaded_file is not None:
         # 載入上傳的圖片並縮放至模板尺寸
@@ -283,7 +284,7 @@ with st.container():
         st.markdown("##### 貼文比例選擇")
         ratio = st.radio(
             "選擇圖片比例：",
-            ('1:1', '9:16'),
+            ('1:1', '4:3'), # *** 已修改選項 ***
             key='ratio_select',
             horizontal=True
         )
