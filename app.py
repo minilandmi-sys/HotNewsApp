@@ -7,7 +7,16 @@ from io import BytesIO
 import openai  # ✅ 這行一定要先加上
 
 # 設定 OpenAI 金鑰（從 Secrets 讀取）
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo",
+    messages=[{"role": "user", "content": prompt}],
+    max_tokens=150,
+    temperature=0.8,
+)
+
+st.session_state.generated_text = response.choices[0].message.content.strip()
 # 4 個網站的 RSS
 RSS_FEEDS = {
     "妞新聞": "https://www.niusnews.com/feed",
@@ -97,17 +106,19 @@ if not st.session_state.df.empty:
     if st.button("✨ 生成社群文案"):
         with st.spinner("AI 正在撰寫文案中..."):
             try:
-                prompt = f"請幫我為以下文章標題撰寫一段 Facebook 貼文文案，風格自然有趣，語氣輕鬆並加入 emoji：\n\n標題：{selected_title}"
+    from openai import OpenAI
+    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-                response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=150,
-                    temperature=0.8,
-                )
+    prompt = f"請幫我為以下文章標題撰寫一段 Facebook 貼文文案，風格自然有趣、語氣輕鬆並加入 emoji：\n\n標題：{selected_title}"
 
-                st.session_state.generated_text = response.choices[0].message.content.strip()
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=150,
+        temperature=0.8,
+    )
 
+    st.session_state.generated_text = response.choices[0].message.content.strip()
             except Exception as e:
                 st.error(f"❌ 發生錯誤：{e}")
 
@@ -117,3 +128,4 @@ if 'generated_text' in st.session_state:
     st.write(st.session_state.generated_text)
 else:
     st.info("請先按上方按鈕產生報表後，再使用文案生成功能。")
+
