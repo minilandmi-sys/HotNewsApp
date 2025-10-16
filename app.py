@@ -78,7 +78,7 @@ def get_font(size, bold=False):
         # 若找不到特定字體，使用預設字體
         return ImageFont.load_default()
 
-def generate_visual_content(title, meme_text, ratio='1:1'):
+def generate_visual_content(title, meme_text, ratio='1:1', uploaded_file=None): # 新增 uploaded_file 參數
     """
     使用 Pillow 函式庫，在伺服器端生成帶有梗圖文字的圖片。
     """
@@ -86,8 +86,20 @@ def generate_visual_content(title, meme_text, ratio='1:1'):
     WIDTH = 1000
     HEIGHT = 1778 if ratio == '9:16' else 1000
     
-    # 建立基礎圖片 (藍色背景作為模板)
-    img = Image.new('RGB', (WIDTH, HEIGHT), color='#1e3a8a')
+    if uploaded_file is not None:
+        # 載入上傳的圖片並縮放至模板尺寸
+        try:
+            img = Image.open(uploaded_file).convert("RGB")
+            # 使用 LANCZOS 演算法進行高品質縮放
+            img = img.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
+        except Exception as e:
+            # 圖片載入失敗，使用藍色預設模板作為備援
+            st.warning(f"⚠️ 圖片載入失敗，使用藍色預設模板。錯誤: {e}")
+            img = Image.new('RGB', (WIDTH, HEIGHT), color='#1e3a8a')
+    else:
+        # 建立基礎圖片 (藍色背景作為模板)
+        img = Image.new('RGB', (WIDTH, HEIGHT), color='#1e3a8a')
+
     draw = ImageDraw.Draw(img)
 
     # --- 繪製模板標題與文章標題 ---
@@ -169,6 +181,7 @@ def generate_visual_content(title, meme_text, ratio='1:1'):
 def generate_ai_copy(article_title, meme_text):
     """
     使用 Gemini API 生成 3 份針對社群貼文優化的文案草稿。
+    NOTE: 若出現 400 錯誤，請檢查您的 GEMINI_API_KEY 是否有效且具有足夠權限。
     """
     if not API_KEY:
         return "API 金鑰未設定，無法呼叫 Gemini API。"
@@ -215,6 +228,7 @@ def generate_ai_copy(article_title, meme_text):
             return "API 回應解析失敗。"
 
     except requests.exceptions.RequestException as e:
+        # 由於 400 錯誤常與金鑰/權限相關，此處保留錯誤顯示以利使用者排查
         st.error(f"⚠️ Gemini API 呼叫失敗: {e}")
         st.write(f"API 回應狀態碼: {response.status_code if 'response' in locals() else 'N/A'}")
         return "API 呼叫失敗。"
@@ -265,6 +279,7 @@ st.header("🚀 社群內容加速器")
 st.markdown("使用熱點文章標題，快速製作梗圖視覺與優化文案！")
 
 # --- 模組 1: 文章輸入與比例選擇 ---
+# 將上傳圖片功能與比例選擇放在同一欄
 with st.container():
     col1, col2 = st.columns([2, 1])
 
@@ -300,29 +315,22 @@ with st.container():
             key='ratio_select',
             horizontal=True
         )
+        
+        # 新增圖片上傳功能
+        uploaded_file = st.file_uploader("🖼️ 上傳背景圖片 (可選)", type=["jpg", "jpeg", "png"])
 
 # --- 模組 2: 視覺模板預覽 ---
 st.markdown("#### 🖼️ 視覺模板預覽")
-visual_img = generate_visual_content(article_title, meme_text, ratio)
-st.image(visual_img, caption="視覺內容預覽 (由 Pillow 模擬 Canvas 繪製，已支援長標題換行)", use_column_width='auto')
+# 呼叫函式時傳入上傳的檔案
+visual_img = generate_visual_content(article_title, meme_text, ratio, uploaded_file)
+st.image(visual_img, caption="視覺內容預覽 (由 Pillow 模擬 Canvas 繪製，已支援長標題換行與自訂背景)", use_column_width='auto')
 
-# --- 下載按鈕 (PNG/JPG) ---
-col_download1, col_download2 = st.columns(2)
-
-# PNG 下載
-img_byte_arr_png = BytesIO()
-visual_img.save(img_byte_arr_png, format='PNG')
-col_download1.download_button(
-    label="⬇️ 下載成品 (PNG)",
-    data=img_byte_arr_png.getvalue(),
-    file_name=f"{article_title[:10].replace('/', '_')}_meme.png",
-    mime="image/png"
-)
-
-# JPG 下載
+# --- 下載按鈕 (只留 JPG) ---
+# 只保留 JPG 下載按鈕
 img_byte_arr_jpg = BytesIO()
-visual_img.save(img_byte_arr_jpg, format='JPEG')
-col_download2.download_button(
+visual_img.save(img_byte_arr_jpg, format='JPEG', quality=95) # quality=95 以確保較高品質的 JPG
+
+st.download_button(
     label="⬇️ 下載成品 (JPG)",
     data=img_byte_arr_jpg.getvalue(),
     file_name=f"{article_title[:10].replace('/', '_')}_meme.jpg",
