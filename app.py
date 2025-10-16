@@ -119,8 +119,9 @@ if not st.session_state.df.empty:
     )
 
     st.session_state.generated_text = response.choices[0].message.content.strip()
-            except Exception as e:
-                st.error(f"❌ 發生錯誤：{e}")
+except Exception as e:
+    st.error(f"⚠️ 發生錯誤：{e}")
+
 
 # 顯示 AI 生成結果（不會被刷新消失）
 if 'generated_text' in st.session_state:
@@ -128,4 +129,5 @@ if 'generated_text' in st.session_state:
     st.write(st.session_state.generated_text)
 else:
     st.info("請先按上方按鈕產生報表後，再使用文案生成功能。")
+
 
