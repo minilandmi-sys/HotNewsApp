@@ -143,16 +143,31 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     # ** 依據字型大小調整，將字數限制放寬（約為原來的兩倍） **
     CHAR_LIMIT = 24 if WIDTH < 1000 else 36 
     
-    lines = []
-    current_line = ""
-    for char in article_to_display:
-        if len(current_line) < CHAR_LIMIT:
-            current_line += char
-        else:
-            lines.append(current_line)
-            current_line = char
-    lines.append(current_line)
-    lines = [line.strip() for line in lines if line.strip()]
+    # --- 修正：支援 st.text_area 輸入的換行符號 ---
+    final_lines = []
+    
+    # 1. 處理使用者定義的換行 (來自 st.text_area)
+    user_defined_lines = article_to_display.split('\n')
+    
+    for user_line in user_defined_lines:
+        current_line = ""
+        
+        # 2. 對每一行應用自動換行邏輯 (防止單行過長)
+        for char in user_line:
+            if len(current_line) < CHAR_LIMIT:
+                current_line += char
+            else:
+                # 達到 CHAR_LIMIT，強制換行
+                final_lines.append(current_line)
+                current_line = char
+        
+        # 3. 確保行尾的剩餘文字被加入
+        if current_line:
+            final_lines.append(current_line)
+
+    # 移除空行並清理
+    lines = [line.strip() for line in final_lines if line.strip()] 
+    # --- 結束修正 ---
 
     # 定位：置中靠下 (底部錨點)
     line_height = ARTICLE_FONT_SIZE * 1.3 
@@ -314,14 +329,14 @@ with st.container():
                 on_change=update_editable_title
             )
             
-            st.text_input(
+            st.text_area( # <-- 更改為 st.text_area
                 "編輯或輸入文章標題:", 
                 value=st.session_state.editable_article_title, 
                 key="editable_article_title"
             )
             
         else:
-            st.text_input(
+            st.text_area( # <-- 更改為 st.text_area
                 "手動輸入文章標題 (請先產生報表):", 
                 value=st.session_state.editable_article_title, 
                 key="editable_article_title"
