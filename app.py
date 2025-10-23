@@ -255,6 +255,19 @@ st.markdown("---")
 st.header("🚀 社群內容加速器")
 st.markdown("使用熱點文章標題，快速製作圖片視覺與優化標題！") # 修正文案
 
+# --- 文章標題狀態管理回呼函式 ---
+def update_editable_title():
+    """當下拉選單變動時，更新可編輯標題的狀態。"""
+    selected = st.session_state.title_select
+    # 如果選擇的不是預設選項，則更新可編輯標題
+    if selected != "--- 請選擇熱點文章 ---":
+        st.session_state.editable_article_title = selected
+
+# --- 初始化可編輯標題的狀態 ---
+if 'editable_article_title' not in st.session_state:
+    st.session_state.editable_article_title = ""
+
+
 # --- 模組 1: 文章輸入與比例選擇 ---
 # 將上傳圖片功能與比例選擇放在同一欄
 with st.container():
@@ -263,28 +276,50 @@ with st.container():
     with col1:
         # 模組 1: 文章標題輸入 (從報表選擇或手動輸入)
         if not st.session_state.df.empty:
-            titles = ["--- 手動輸入 ---"] + st.session_state.df["標題"].tolist()
-            selected_title_option = st.selectbox(
-                "選擇或輸入熱點文章標題：", 
+            
+            # 準備標題列表，並新增預設選項
+            titles = ["--- 請選擇熱點文章 ---"] + st.session_state.df["標題"].tolist()
+            
+            # 嘗試保持當前編輯中的標題在選單中被選中
+            try:
+                default_index = titles.index(st.session_state.editable_article_title)
+            except ValueError:
+                default_index = 0
+            
+            # 下拉選單：選擇標題，變動時呼叫回呼函式
+            st.selectbox(
+                "選擇熱點文章標題：", 
                 titles, 
-                key="title_select"
+                index=default_index,
+                key="title_select",
+                on_change=update_editable_title
             )
             
-            if selected_title_option == "--- 手動輸入 ---":
-                article_title = st.text_input("或手動輸入文章標題:", value="", key="title_manual")
-            else:
-                article_title = selected_title_option
+            # 可編輯文字輸入框：用於顯示和修改選中的標題
+            article_title = st.text_input(
+                "編輯或輸入文章標題:", 
+                value=st.session_state.editable_article_title, # 從 session_state 讀取初始值
+                key="article_title_input"
+            )
+            
+            # 將輸入框最新的內容存回 session_state，供下次頁面載入時保持
+            st.session_state.editable_article_title = article_title
+
         else:
-            article_title = st.text_input("手動輸入文章標題 (請先產生報表):", value="", key="title_manual_only")
-        
-        # *** 已移除 meme_text 的輸入框 ***
+            # Fallback if no report is generated
+            article_title = st.text_input(
+                "手動輸入文章標題 (請先產生報表):", 
+                value=st.session_state.editable_article_title, 
+                key="article_title_input_only"
+            )
+            st.session_state.editable_article_title = article_title
         
     with col2:
         # 模組 2: 比例選擇
         st.markdown("##### 貼文比例選擇")
         ratio = st.radio(
             "選擇圖片比例：",
-            ('1:1', '4:3'), # *** 已修改選項 ***
+            ('1:1', '4:3'), 
             key='ratio_select',
             horizontal=True
         )
