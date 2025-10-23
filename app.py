@@ -78,14 +78,19 @@ def get_font(size, bold=False):
         # 若找不到特定字體，使用預設字體
         return ImageFont.load_default()
 
-def generate_visual_content(title, ratio='1:1', uploaded_file=None): # 已移除 meme_text
+def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     """
     使用 Pillow 函式庫，在伺服器端生成帶有文章標題的圖片模板。
+    根據要求：1:1 為方型，4:3 改為 3:4 直式版型，標題置中靠下 40pt (約 70px)。
     """
-    # 定義尺寸
-    WIDTH = 1000
-    # 根據新的比例設定高度：1:1 為 1000, 4:3 為 750 (1000 * 3 / 4)
-    HEIGHT = 750 if ratio == '4:3' else 1000
+    # 定義尺寸 (1000px max dimension)
+    MAX_DIM = 1000
+    if ratio == '4:3': # 依據要求，4:3 改為 3:4 直式版型 (750x1000)
+        WIDTH = int(MAX_DIM * 3 / 4) # 750
+        HEIGHT = MAX_DIM # 1000
+    else: # 1:1 (1000x1000)
+        WIDTH = MAX_DIM # 1000
+        HEIGHT = MAX_DIM # 1000
     
     if uploaded_file is not None:
         # 載入上傳的圖片並縮放至模板尺寸
@@ -103,52 +108,59 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None): # 已移除
 
     draw = ImageDraw.Draw(img)
 
-    # --- 繪製模板標題與文章標題 ---
+    # --- 模板標題 (保持原有的動態尺寸和位置，避免混淆) ---
     title_size = int(WIDTH / 35)
-    article_size = int(WIDTH / 50)
-    
     title_font = get_font(title_size, bold=True)
-    article_font = get_font(article_size, bold=False)
-
-    # 模板標題 (保持單行置中)
     draw.text((WIDTH / 2, HEIGHT * 0.08), 
               "【社群內容加速器】視覺模板", 
               fill="#ffffff", 
               font=title_font, 
               anchor="mm")
     
-    # 文章標題 - 實現多行自動換行 (使用簡易字元限制)
+    # --- 文章標題 (核心修改：40pt 尺寸，置中靠下) ---
+    
     article_to_display = title or "請輸入文章標題以跟風熱點..."
     
-    # 針對中文標題，每行限制大約 30 個字元 (粗略估計 80% 寬度)
-    CHAR_LIMIT = 30 
+    # 1. 設置字型 (40pt 約等於 70px)
+    ARTICLE_FONT_SIZE = 70 
+    
+    # 根據比例設定字型屬性 (無法使用特定字體，使用 bold/normal 模擬)
+    if ratio == '4:3': # 3:4 Vertical, 模擬 "canva sans" (使用 bold)
+        article_font = get_font(ARTICLE_FONT_SIZE, bold=True)
+    else: # 1:1 Square, 模擬 "helvetica word" (使用 regular)
+        article_font = get_font(ARTICLE_FONT_SIZE, bold=False)
+
+    # 2. 實現多行自動換行
+    # 針對中文標題，調整字元限制 (750px 寬度較窄)
+    CHAR_LIMIT = 20 if WIDTH < 1000 else 25 
+    
     lines = []
     current_line = ""
-    
-    # 處理標題換行
     for char in article_to_display:
-        # 這裡使用 len() 模擬字元數限制，而非精準的像素計算
         if len(current_line) < CHAR_LIMIT:
             current_line += char
         else:
             lines.append(current_line)
             current_line = char
-    lines.append(current_line) # Add the last line
+    lines.append(current_line)
+    lines = [line.strip() for line in lines if line.strip()]
 
-    lines = [line.strip() for line in lines if line.strip()] # 清理空白行
+    # 3. 定位：置中靠下 (底部錨點在圖片高度 90% 處)
+    line_height = ARTICLE_FONT_SIZE * 1.3 # 設定行距
+    total_text_height = len(lines) * line_height
 
-    y_start = HEIGHT * 0.15 # 換行文字起始 Y 座標
-    line_height = article_size * 1.5 # 行距
+    Y_BOTTOM_ANCHOR = HEIGHT * 0.90 # 圖片底部的 90%
+    
+    # 計算第一行的起始Y座標 (讓整個文字塊置中靠下)
+    y_start = Y_BOTTOM_ANCHOR - total_text_height 
 
-    # 繪製 wrapped 文章標題
+    # 4. 繪製
     for i, line in enumerate(lines):
         draw.text((WIDTH / 2, y_start + i * line_height), 
                   line, 
                   fill="#ffffff", 
                   font=article_font, 
-                  anchor="mt") # 使用 'mt' 錨點進行頂部置中對齊
-    
-    # *** 已移除繪製梗圖文字 (meme_text) 的相關邏輯 ***
+                  anchor="mt") # 使用 'mt' (middle-top) 錨點進行置中對齊
 
     return img
 
@@ -302,7 +314,6 @@ with st.container():
                 key="editable_article_title" # <--- 直接使用 canonical key
             )
             
-            # 移除舊的 local variable article_title 賦值和狀態同步，因為 key 已直接綁定
 
         else:
             # Fallback if no report is generated
@@ -311,7 +322,6 @@ with st.container():
                 value=st.session_state.editable_article_title, 
                 key="editable_article_title" # <--- 直接使用 canonical key
             )
-            # 移除舊的 local variable article_title 賦值和狀態同步
 
     # <--- 在容器外定義 article_title，確保使用最新的 editable_article_title 狀態
     article_title = st.session_state.editable_article_title
