@@ -99,8 +99,40 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     if uploaded_file is not None:
         try:
             img = Image.open(uploaded_file).convert("RGB")
-            # 使用 LANCZOS 演算法進行高品質縮放
-            img = img.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
+            
+            # --- START: 新增圖片置中裁剪邏輯以保持比例 ---
+            # 獲取上傳圖片的長寬
+            img_width, img_height = img.size
+            # 計算目標模板的長寬比 (Target Aspect Ratio)
+            target_ratio = WIDTH / HEIGHT
+            
+            # 判斷是寬度過度還是高度過度
+            if img_width / img_height > target_ratio:
+                # 圖片太寬，按高度縮放，寬度裁剪
+                new_height = HEIGHT
+                new_width = int(img_width * (HEIGHT / img_height))
+                img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                
+                # 置中裁剪
+                left = (new_width - WIDTH) / 2
+                top = 0
+                right = left + WIDTH
+                bottom = HEIGHT
+            else:
+                # 圖片太高，按寬度縮放，高度裁剪
+                new_width = WIDTH
+                new_height = int(img_height * (WIDTH / img_width))
+                img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                
+                # 置中裁剪
+                left = 0
+                top = (new_height - HEIGHT) / 2
+                right = WIDTH
+                bottom = top + HEIGHT
+            
+            img = img.crop((int(left), int(top), int(right), int(bottom)))
+            # --- END: 新增圖片置中裁剪邏輯以保持比例 ---
+            
         except Exception:
             img = Image.new('RGB', (WIDTH, HEIGHT), color='#1e3a8a')
     else:
@@ -108,8 +140,8 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
 
 
     # --- 2. 新增底部半透明黑色遮罩 (Overlay) ---
-    # 調整：黑底總高度為 30% (從 70% 高度開始)，使黑底更窄。
-    OVERLAY_START_Y = int(HEIGHT * 0.70) 
+    # 調整：黑底總高度為 20% (從 80% 高度開始)，使黑底更窄。
+    OVERLAY_START_Y = int(HEIGHT * 0.80) 
     
     overlay = Image.new('RGBA', (WIDTH, HEIGHT), (0, 0, 0, 0))
     overlay_draw = ImageDraw.Draw(overlay)
