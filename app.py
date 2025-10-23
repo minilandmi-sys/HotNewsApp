@@ -120,14 +120,14 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     img = Image.alpha_composite(img.convert('RGBA'), overlay).convert('RGB')
     draw = ImageDraw.Draw(img) 
 
-    # --- 3. 繪製頂部模板標題 ---
-    title_size = int(WIDTH / 35)
-    title_font = get_font(title_size, bold=True)
-    draw.text((WIDTH / 2, HEIGHT * 0.08), 
-              "【社群內容加速器】視覺模板", 
-              fill="#999999", 
-              font=title_font, 
-              anchor="mm")
+    # --- 3. 繪製頂部模板標題 (已移除/註解) ---
+    # title_size = int(WIDTH / 35)
+    # title_font = get_font(title_size, bold=True)
+    # draw.text((WIDTH / 2, HEIGHT * 0.08), 
+    #           "【社群內容加速器】視覺模板", 
+    #           fill="#999999", 
+    #           font=title_font, 
+    #           anchor="mm")
     
     # --- 4. 繪製文章標題 (置中靠下，在遮罩上) ---
     
@@ -170,14 +170,14 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
                   font=article_font, 
                   anchor="mt") 
 
-    # --- 5. 新增底部版權標示 ---
-    caption_size = int(WIDTH / 50)
-    caption_font = get_font(caption_size, bold=False)
-    draw.text((WIDTH / 2, HEIGHT * 0.96), 
-              "Copyright © 社群內容加速器", 
-              fill="#cccccc", 
-              font=caption_font, 
-              anchor="mm")
+    # --- 5. 新增底部版權標示 (已移除/註解) ---
+    # caption_size = int(WIDTH / 50)
+    # caption_font = get_font(caption_size, bold=False)
+    # draw.text((WIDTH / 2, HEIGHT * 0.96), 
+    #           "Copyright © 社群內容加速器", 
+    #           fill="#cccccc", 
+    #           font=caption_font, 
+    #           anchor="mm")
               
     return img
 
