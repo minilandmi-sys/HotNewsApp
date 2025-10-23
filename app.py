@@ -67,9 +67,9 @@ def fetch_top5_each_site():
 
 # ================= 模組 2：視覺內容生成 (Pillow 實現) =================
 
-# *** 核心修改在這裡：明確指定字型檔案 ***
-# 假設您已上傳此檔案到應用程式目錄
-FONT_FILE_PATH = "NotoSansCJKtc-Bold.otf" 
+# *** 核心修改在這裡：將路徑修正為指向 .devcontainer 資料夾內的檔案 ***
+# 根據您的檔案結構截圖，路徑修正為 ".devcontainer/NotoSansTC-Bold.ttf"
+FONT_FILE_PATH = ".devcontainer/NotoSansTC-Bold.ttf" 
 
 def get_font(size, bold=False):
     """
