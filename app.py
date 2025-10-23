@@ -82,14 +82,13 @@ def get_font(size, bold=False):
         st.warning(f"⚠️ 嚴重警告：找不到字型檔案 '{FONT_FILE_PATH}'。請確認檔案已上傳至應用程式根目錄。")
         return ImageFont.load_default()
 
-def generate_visual_content(title, ratio='1:1', uploaded_file=None, font_color="#ffffff"):
+def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     """
     使用 Pillow 函式庫，在伺服器端生成帶有文章標題的圖片模板。
     Args:
         title (str): 文章標題。
         ratio (str): 圖片比例 ('1:1' 或 '4:3')。
         uploaded_file (Optional): 上傳的背景圖片檔案。
-        font_color (str): 文章標題的字型顏色 (e.g., "#ffffff")。
     """
     # 定義尺寸 (1000px max dimension)
     MAX_DIM = 1000
@@ -225,7 +224,7 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None, font_color="
     for i, line in enumerate(lines):
         draw.text((WIDTH / 2, y_start + i * line_height), 
                   line, 
-                  fill=font_color, # 使用傳入的字型顏色
+                  fill="#ffffff", # 硬編碼為白色 (原預設值)
                   font=article_font, 
                   anchor="mt") # anchor="mt" ensures horizontal center alignment
 
@@ -350,9 +349,6 @@ def update_editable_title():
 # --- 初始化可編輯標題的狀態 ---
 if 'editable_article_title' not in st.session_state:
     st.session_state.editable_article_title = ""
-# 初始化字型顏色
-if 'font_color_select' not in st.session_state:
-    st.session_state.font_color_select = "#FFFFFF"
 
 
 # --- 模組 1: 文章輸入與比例選擇 ---
@@ -400,23 +396,15 @@ with st.container():
             horizontal=True
         )
         
-        # 新增：字型顏色選擇器
-        st.color_picker(
-            "🎨 選擇字型顏色", 
-            value="#FFFFFF", 
-            key='font_color_select'
-        )
-        
         uploaded_file = st.file_uploader("🖼️ 上傳背景圖片 (可選)", type=["jpg", "jpeg", "png"])
 
 # --- 模組 2: 視覺模板預覽 ---
 st.markdown("#### 🖼️ 視覺模板預覽")
-# 傳入字型顏色
+# 移除 font_color 參數
 visual_img = generate_visual_content(
     article_title, 
     ratio, 
-    uploaded_file, 
-    st.session_state.font_color_select
+    uploaded_file
 )
 st.image(visual_img, caption=f"視覺內容預覽 (請確保字型檔 {FONT_FILE_PATH} 已上傳)", use_column_width='auto')
 
