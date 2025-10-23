@@ -67,7 +67,6 @@ def fetch_top5_each_site():
 
 # ================= 模組 2：視覺內容生成 (Pillow 實現) =================
 
-# *** 核心修改在這裡：將路徑修正為指向 .devcontainer 資料夾內的檔案 ***
 # 根據您的檔案結構截圖，路徑修正為 ".devcontainer/NotoSansTC-Bold.ttf"
 FONT_FILE_PATH = ".devcontainer/NotoSansTC-Bold.ttf" 
 
@@ -109,7 +108,8 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
 
 
     # --- 2. 新增底部半透明黑色遮罩 (Overlay) ---
-    OVERLAY_START_Y = int(HEIGHT * 0.70) 
+    # 調整：黑底總高度為 50%，因此從 50% 高度開始
+    OVERLAY_START_Y = int(HEIGHT * 0.50) 
     
     overlay = Image.new('RGBA', (WIDTH, HEIGHT), (0, 0, 0, 0))
     overlay_draw = ImageDraw.Draw(overlay)
@@ -133,26 +133,22 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     
     article_to_display = title or "請輸入文章標題以跟風熱點..."
     
-    # ** 依據使用者需求，將字型大小從 80 調整為 40 **
+    # 字型大小為 40
     ARTICLE_FONT_SIZE = 40 
     
-    # 這裡的 bold 參數已經失效，因為 get_font 函式被修改為只載入 FONT_FILE_PATH
     article_font = get_font(ARTICLE_FONT_SIZE, bold=True) 
     
     # 實現多行自動換行
-    # ** 依據字型大小調整，將字數限制放寬（約為原來的兩倍） **
     CHAR_LIMIT = 24 if WIDTH < 1000 else 36 
     
-    # --- 修正：支援 st.text_area 輸入的換行符號 ---
+    # --- 支援 st.text_area 輸入的換行符號 ---
     final_lines = []
-    
-    # 1. 處理使用者定義的換行 (來自 st.text_area)
     user_defined_lines = article_to_display.split('\n')
     
     for user_line in user_defined_lines:
         current_line = ""
         
-        # 2. 對每一行應用自動換行邏輯 (防止單行過長)
+        # 對每一行應用自動換行邏輯 (防止單行過長)
         for char in user_line:
             if len(current_line) < CHAR_LIMIT:
                 current_line += char
@@ -161,7 +157,7 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
                 final_lines.append(current_line)
                 current_line = char
         
-        # 3. 確保行尾的剩餘文字被加入
+        # 確保行尾的剩餘文字被加入
         if current_line:
             final_lines.append(current_line)
 
@@ -173,7 +169,8 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     line_height = ARTICLE_FONT_SIZE * 1.3 
     total_text_height = len(lines) * line_height
 
-    Y_BOTTOM_ANCHOR = HEIGHT * 0.90 
+    # 調整：文字錨點離底部 20%，即在圖片高度的 80% 處
+    Y_BOTTOM_ANCHOR = HEIGHT * 0.80 
     
     y_start = Y_BOTTOM_ANCHOR - total_text_height 
 
