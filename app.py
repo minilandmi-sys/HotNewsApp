@@ -65,7 +65,7 @@ def fetch_top5_each_site():
     all_entries.sort(key=lambda x: x["發佈時間"], reverse=True)
     return pd.DataFrame(all_entries)
 
-# ================= 模組 2 & 3：視覺內容生成 (Pillow 實現) =================
+# ================= 模組 2：視覺內容生成 (Pillow 實現) =================
 
 def get_font(size, bold=False):
     """嘗試載入常見字體，若失敗則回傳預設字體"""
@@ -164,68 +164,6 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
 
     return img
 
-# ================= 模組 3：AI 文案優化邏輯 (使用 Gemini API) =================
-
-def generate_ai_copy(article_title): # 已移除 meme_text
-    """
-    使用 Gemini API 生成 3 份針對社群貼文優化的標題，僅依賴文章標題。
-    NOTE: 若出現 400 錯誤，請檢查您的 GEMINI_API_KEY 是否有效且具有足夠權限。
-    """
-    if not API_KEY:
-        return "API 金鑰未設定，無法呼叫 Gemini API。"
-        
-    if not article_title: # 僅檢查 article_title
-        return None
-
-    # 系統指令：設定為機智的台灣社群編輯 (已修改為生成標題)
-    system_prompt = "Act as a witty Taiwanese social media editor (社群小編). Your output must be in Traditional Chinese. Based on the article title provided by the user, generate 3 different, highly engaging, and clickable article titles/headlines ( suitable for a blog or social media post). Each title should be concise and separated by a single line break. Format your response using Markdown bullet points (*), NOT numbered lists."
-            
-    # 查詢內容：僅使用文章標題
-    user_query = f"請根據以下資訊生成 3 份優化的社群標題:\n\n文章標題 (核心資訊): {article_title}"
-
-    headers = {
-        "Content-Type": "application/json",
-    }
-    
-    # 構建 Gemini API 的 Payload
-    payload = {
-        "contents": [{"parts": [{"text": user_query}]}],
-        "systemInstruction": {"parts": [{"text": system_prompt}]},
-        "config": {
-            "maxOutputTokens": 500,
-            "temperature": 0.7
-        }
-    }
-
-    try:
-        # 發起 API 呼叫
-        response = requests.post(
-            f"{GEMINI_API_URL}?key={API_KEY}", 
-            headers=headers, 
-            json=payload
-        )
-        response.raise_for_status() # 對 HTTP 錯誤碼拋出異常
-
-        result = response.json()
-        
-        # 檢查並提取生成的文本
-        if result and 'candidates' in result and len(result['candidates']) > 0 and 'parts' in result['candidates'][0]['content']:
-            text = result['candidates'][0]['content']['parts'][0]['text']
-            return text.strip()
-        else:
-            st.error("⚠️ Gemini API 回傳格式錯誤或無內容。")
-            return "API 回應解析失敗。"
-
-    except requests.exceptions.RequestException as e:
-        # 由於 400 錯誤常與金鑰/權限相關，此處保留錯誤顯示以利使用者排查
-        st.error(f"⚠️ Gemini API 呼叫失敗: {e}")
-        st.write(f"API 回應狀態碼: {response.status_code if 'response' in locals() else 'N/A'}")
-        return "API 呼叫失敗。"
-    except Exception as e:
-        st.error(f"⚠️ 發生未知錯誤：{e}")
-        return "未知錯誤。"
-
-
 # ================= Streamlit UI (主程式) =================
 
 st.title("📰 熱門新聞報表工具 (RSS)")
@@ -243,7 +181,7 @@ if st.button("📊 產生最新報表"):
 
         # 轉換為 Excel 並下載
         output = BytesIO()
-        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        with pd.ExcelWriter(output, engine="openypxl") as writer:
             df.to_excel(writer, index=False)
         excel_data = output.getvalue()
 
@@ -356,27 +294,3 @@ st.download_button(
     file_name=f"{article_title[:10].replace('/', '_')}_image.jpg",
     mime="image/jpeg"
 )
-
-# --- 模組 3: AI 文案優化 ---
-st.markdown("---")
-st.subheader("🤖 AI 社群標題優化 (生成 3 份標題)") # 修正文案為標題
-
-if st.button("✨ 生成優化社群標題", key="generate_new_copy_btn"): # 修正文案為標題
-    if not article_title: # 僅檢查文章標題
-        st.error("⚠️ 請確認已輸入**文章標題**。")
-    else:
-        with st.spinner("AI 正在根據您的輸入撰寫 3 份優化標題中..."): # 修正文案為標題
-            try:
-                # 呼叫函式時已移除 meme_text
-                ai_text = generate_ai_copy(article_title)
-                if ai_text:
-                    st.session_state.accelerator_copy = ai_text # 儲存新標題
-            except Exception as e:
-                # 錯誤處理已在 generate_ai_copy 內部完成
-                pass
-
-# 顯示 AI 生成結果
-if 'accelerator_copy' in st.session_state and st.session_state.accelerator_copy:
-    st.success("✅ 3 份優化標題生成完成！") # 修正文案為標題
-    # 將 Markdown 格式的結果 (如 *) 渲染出來
-    st.markdown(st.session_state.accelerator_copy)
