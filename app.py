@@ -431,16 +431,20 @@ with col_4_3:
              caption=f"4:3 預覽 (字型檔: {FONT_FILE_PATH})", 
              use_column_width='always')
 
-# --- 下載按鈕 (只留 JPG) ---
+# --- 下載按鈕 (改為 PNG 以避免 JPEG 壓縮失真) ---
 # 下載按鈕繼續使用選定的 visual_img_selected
-img_byte_arr_jpg = BytesIO()
-visual_img_selected.save(img_byte_arr_jpg, format='JPEG', quality=95) 
+# 原因分析：原先使用 JPEG 格式 (quality=95) 進行存檔，雖然品質高，但 JPEG 是有損壓縮，
+# 尤其在純色區塊和銳利文字邊緣容易產生「失真」或「壓縮」痕跡。
+# 修正：改用 PNG 格式，這是無損壓縮，能最大程度保留畫質，避免視覺模板中的文字失真。
+img_byte_arr_png = BytesIO()
+visual_img_selected.save(img_byte_arr_png, format='PNG') 
+img_byte_arr_png.seek(0)
 
 st.download_button(
-    label="⬇️ 下載成品 (JPG)",
-    data=img_byte_arr_jpg.getvalue(),
-    file_name=f"{article_title[:10].replace('/', '_')}_image_{ratio}.jpg", # 下載檔名加上比例
-    mime="image/jpeg"
+    label="⬇️ 下載成品 (PNG) - 無損畫質",
+    data=img_byte_arr_png.getvalue(),
+    file_name=f"{article_title[:10].replace('/', '_')}_image_{ratio}.png", 
+    mime="image/png"
 )
 
 # --- 模組 3: AI 文案優化 ---
