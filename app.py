@@ -133,13 +133,15 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     
     article_to_display = title or "請輸入文章標題以跟風熱點..."
     
-    ARTICLE_FONT_SIZE = 80 
+    # ** 依據使用者需求，將字型大小從 80 調整為 40 **
+    ARTICLE_FONT_SIZE = 40 
     
     # 這裡的 bold 參數已經失效，因為 get_font 函式被修改為只載入 FONT_FILE_PATH
     article_font = get_font(ARTICLE_FONT_SIZE, bold=True) 
     
     # 實現多行自動換行
-    CHAR_LIMIT = 12 if WIDTH < 1000 else 18 
+    # ** 依據字型大小調整，將字數限制放寬（約為原來的兩倍） **
+    CHAR_LIMIT = 24 if WIDTH < 1000 else 36 
     
     lines = []
     current_line = ""
