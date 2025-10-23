@@ -400,22 +400,46 @@ with st.container():
 
 # --- 模組 2: 視覺模板預覽 ---
 st.markdown("#### 🖼️ 視覺模板預覽")
-# 移除 font_color 參數
-visual_img = generate_visual_content(
+
+# 1. 根據選定的比例生成圖片 (用於下載)
+visual_img_selected = generate_visual_content(
     article_title, 
-    ratio, 
+    ratio, # '1:1' or '4:3'
     uploaded_file
 )
-st.image(visual_img, caption=f"視覺內容預覽 (請確保字型檔 {FONT_FILE_PATH} 已上傳)", use_column_width='auto')
+
+# 2. 生成另一個比例的圖片 (用於對照預覽)
+other_ratio = '4:3' if ratio == '1:1' else '1:1'
+visual_img_other = generate_visual_content(
+    article_title, 
+    other_ratio, 
+    uploaded_file
+)
+
+# 3. 顯示兩個預覽
+col_1_1, col_4_3 = st.columns(2)
+
+with col_1_1:
+    st.markdown("**1:1 比例預覽**")
+    st.image(visual_img_selected if ratio == '1:1' else visual_img_other, 
+             caption=f"1:1 預覽 (字型檔: {FONT_FILE_PATH})", 
+             use_column_width='always')
+
+with col_4_3:
+    st.markdown("**4:3 比例預覽**")
+    st.image(visual_img_selected if ratio == '4:3' else visual_img_other, 
+             caption=f"4:3 預覽 (字型檔: {FONT_FILE_PATH})", 
+             use_column_width='always')
 
 # --- 下載按鈕 (只留 JPG) ---
+# 下載按鈕繼續使用選定的 visual_img_selected
 img_byte_arr_jpg = BytesIO()
-visual_img.save(img_byte_arr_jpg, format='JPEG', quality=95) 
+visual_img_selected.save(img_byte_arr_jpg, format='JPEG', quality=95) 
 
 st.download_button(
     label="⬇️ 下載成品 (JPG)",
     data=img_byte_arr_jpg.getvalue(),
-    file_name=f"{article_title[:10].replace('/', '_')}_image.jpg",
+    file_name=f"{article_title[:10].replace('/', '_')}_image_{ratio}.jpg", # 下載檔名加上比例
     mime="image/jpeg"
 )
 
