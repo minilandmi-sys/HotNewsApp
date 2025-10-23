@@ -82,9 +82,14 @@ def get_font(size, bold=False):
         st.warning(f"⚠️ 嚴重警告：找不到字型檔案 '{FONT_FILE_PATH}'。請確認檔案已上傳至應用程式根目錄。")
         return ImageFont.load_default()
 
-def generate_visual_content(title, ratio='1:1', uploaded_file=None):
+def generate_visual_content(title, ratio='1:1', uploaded_file=None, font_color="#ffffff"):
     """
     使用 Pillow 函式庫，在伺服器端生成帶有文章標題的圖片模板。
+    Args:
+        title (str): 文章標題。
+        ratio (str): 圖片比例 ('1:1' 或 '4:3')。
+        uploaded_file (Optional): 上傳的背景圖片檔案。
+        font_color (str): 文章標題的字型顏色 (e.g., "#ffffff")。
     """
     # 定義尺寸 (1000px max dimension)
     MAX_DIM = 1000
@@ -140,14 +145,21 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
 
 
     # --- 2. 新增底部半透明黑色遮罩 (Overlay) ---
-    # 調整：黑底總高度為 15% (從 85% 高度開始)，使黑底更窄。
-    OVERLAY_START_Y = int(HEIGHT * 0.85) 
+    # 調整：黑底總高度為 15%，但整個區塊上移，使底部留出 10% 的空白。
+    OVERLAY_HEIGHT_RATIO = 0.15 # 黑底高度為 15%
+    BOTTOM_GAP_RATIO = 0.10 # 底部留白 10%
+    
+    # 遮罩結束 Y 座標：距離底部 10%
+    OVERLAY_END_Y = int(HEIGHT * (1.0 - BOTTOM_GAP_RATIO)) # 90%
+    # 遮罩起始 Y 座標：從結束點向上減去 15% 的高度
+    OVERLAY_START_Y = int(HEIGHT * (1.0 - BOTTOM_GAP_RATIO - OVERLAY_HEIGHT_RATIO)) # 90% - 15% = 75%
     
     overlay = Image.new('RGBA', (WIDTH, HEIGHT), (0, 0, 0, 0))
     overlay_draw = ImageDraw.Draw(overlay)
     
     opacity = 180 
-    overlay_draw.rectangle([0, OVERLAY_START_Y, WIDTH, HEIGHT], fill=(0, 0, 0, opacity))
+    # 使用新的起始和結束 Y 座標繪製遮罩
+    overlay_draw.rectangle([0, OVERLAY_START_Y, WIDTH, OVERLAY_END_Y], fill=(0, 0, 0, opacity))
     
     img = Image.alpha_composite(img.convert('RGBA'), overlay).convert('RGB')
     draw = ImageDraw.Draw(img) 
@@ -197,13 +209,13 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     lines = [line.strip() for line in final_lines if line.strip()] 
     # --- 結束修正 ---
 
-    # 定位：將文字區塊垂直置中於遮罩內
-    # 調整行距，使文字更寬鬆一點
+    # 定位：將文字區塊垂直置中於新的遮罩區塊內
+    # 調整行距，使文字更寬鬆一點 (1.3 倍)
     line_height = ARTICLE_FONT_SIZE * 1.3 
     total_text_height = len(lines) * line_height
 
-    # 計算遮罩的垂直中心點
-    Y_OVERLAY_CENTER = (OVERLAY_START_Y + HEIGHT) / 2
+    # 計算新遮罩區塊的垂直中心點 (75% to 90%)
+    Y_OVERLAY_CENTER = (OVERLAY_START_Y + OVERLAY_END_Y) / 2
     
     # 計算文字區塊的起始 Y 座標，使其中心點對齊遮罩中心點
     # y_start 是整個文字區塊的頂部
@@ -213,7 +225,7 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     for i, line in enumerate(lines):
         draw.text((WIDTH / 2, y_start + i * line_height), 
                   line, 
-                  fill="#ffffff", 
+                  fill=font_color, # 使用傳入的字型顏色
                   font=article_font, 
                   anchor="mt") # anchor="mt" ensures horizontal center alignment
 
@@ -338,6 +350,9 @@ def update_editable_title():
 # --- 初始化可編輯標題的狀態 ---
 if 'editable_article_title' not in st.session_state:
     st.session_state.editable_article_title = ""
+# 初始化字型顏色
+if 'font_color_select' not in st.session_state:
+    st.session_state.font_color_select = "#FFFFFF"
 
 
 # --- 模組 1: 文章輸入與比例選擇 ---
@@ -385,11 +400,24 @@ with st.container():
             horizontal=True
         )
         
+        # 新增：字型顏色選擇器
+        st.color_picker(
+            "🎨 選擇字型顏色", 
+            value="#FFFFFF", 
+            key='font_color_select'
+        )
+        
         uploaded_file = st.file_uploader("🖼️ 上傳背景圖片 (可選)", type=["jpg", "jpeg", "png"])
 
 # --- 模組 2: 視覺模板預覽 ---
 st.markdown("#### 🖼️ 視覺模板預覽")
-visual_img = generate_visual_content(article_title, ratio, uploaded_file)
+# 傳入字型顏色
+visual_img = generate_visual_content(
+    article_title, 
+    ratio, 
+    uploaded_file, 
+    st.session_state.font_color_select
+)
 st.image(visual_img, caption=f"視覺內容預覽 (請確保字型檔 {FONT_FILE_PATH} 已上傳)", use_column_width='auto')
 
 # --- 下載按鈕 (只留 JPG) ---
