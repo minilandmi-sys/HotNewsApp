@@ -65,12 +65,12 @@ def fetch_top5_each_site():
     all_entries.sort(key=lambda x: x["發佈時間"], reverse=True)
     return pd.DataFrame(all_entries)
 
-# ================= 模組 2 & 3：視覺內容生成 (Pillow 實現) =================
+# ================= 模組 2：視覺內容生成 (Pillow 實現) =================
 
 def get_font(size, bold=False):
     """嘗試載入常見字體，若失敗則回傳預設字體"""
     try:
-        # 模擬 Impact 或 Arial Bold 作為梗圖字體
+        # 模擬字體風格：bold 用於 canva sans (4:3)，regular 用於 helvetica word (1:1)
         # Note: 在實際部署環境中，您可能需要提供 'Impact.ttf' 或 CJK 字體檔案
         font_name = "arial.ttf" if not bold else "arialbd.ttf"
         return ImageFont.truetype(font_name, size)
@@ -81,7 +81,7 @@ def get_font(size, bold=False):
 def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     """
     使用 Pillow 函式庫，在伺服器端生成帶有文章標題的圖片模板。
-    根據要求：1:1 為方型，4:3 改為 3:4 直式版型，標題置中靠下 40pt (約 70px)。
+    核心修改：1:1 為方型，4:3 改為 3:4 直式版型，標題置中靠下 40pt (約 70px)。
     """
     # 定義尺寸 (1000px max dimension)
     MAX_DIM = 1000
@@ -124,7 +124,7 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     # 1. 設置字型 (40pt 約等於 70px)
     ARTICLE_FONT_SIZE = 70 
     
-    # 根據比例設定字型屬性 (無法使用特定字體，使用 bold/normal 模擬)
+    # 根據比例設定字型屬性
     if ratio == '4:3': # 3:4 Vertical, 模擬 "canva sans" (使用 bold)
         article_font = get_font(ARTICLE_FONT_SIZE, bold=True)
     else: # 1:1 Square, 模擬 "helvetica word" (使用 regular)
@@ -265,7 +265,7 @@ else:
 # ================= 社群內容加速器 (新增模組) =================
 st.markdown("---")
 st.header("🚀 社群內容加速器")
-st.markdown("使用熱點文章標題，快速製作圖片視覺與優化標題！") # 修正文案
+st.markdown("使用熱點文章標題，快速製作圖片視覺與優化標題！") 
 
 # --- 文章標題狀態管理回呼函式 ---
 def update_editable_title():
@@ -341,7 +341,6 @@ with st.container():
 
 # --- 模組 2: 視覺模板預覽 ---
 st.markdown("#### 🖼️ 視覺模板預覽")
-# 呼叫函式時已移除 meme_text
 visual_img = generate_visual_content(article_title, ratio, uploaded_file)
 st.image(visual_img, caption="視覺內容預覽 (由 Pillow 模擬 Canvas 繪製，已支援長標題換行與自訂背景)", use_column_width='auto')
 
