@@ -67,33 +67,25 @@ def fetch_top5_each_site():
 
 # ================= 模組 2：視覺內容生成 (Pillow 實現) =================
 
+# *** 核心修改在這裡：明確指定字型檔案 ***
+# 假設您已上傳此檔案到應用程式目錄
+FONT_FILE_PATH = "NotoSansCJKtc-Bold.otf" 
+
 def get_font(size, bold=False):
     """
-    嘗試載入 Noto CJK 字型以確保中文顯示正確。
-    NOTE: 為了解決亂碼問題，我們必須依賴系統中可用的 CJK 字型，例如 Noto。
+    嘗試載入明確指定的 CJK 字型檔案。
     """
-    # 嘗試載入 Noto Sans CJK TC (繁體中文) 或其他常見 CJK 字型
-    font_names = [
-        "NotoSansCJKtc-Bold.otf" if bold else "NotoSansCJKtc-Regular.otf",
-        "NotoSansCJK-Bold.ttc" if bold else "NotoSansCJK-Regular.ttc",
-        "msjhbd.ttc" if bold else "msjh.ttc", # 微軟正黑體 (備援)
-        "Arial Unicode MS.ttf", # 另一個常見的通用字型
-    ]
-    
-    for path in font_names:
-        try:
-            return ImageFont.truetype(path, size)
-        except IOError:
-            continue
-            
-    # 最終備援：若找不到任何 CJK 字體，則回報警告
-    st.warning("⚠️ 警告：找不到中文字型檔。請確保 Noto Sans CJK 或其他 CJK 字型已安裝/上傳。")
-    return ImageFont.load_default()
+    try:
+        # 強制使用上傳的字型檔路徑
+        return ImageFont.truetype(FONT_FILE_PATH, size)
+    except IOError:
+        # 如果找不到指定檔案，則退回預設字型並發出警告
+        st.warning(f"⚠️ 嚴重警告：找不到字型檔案 '{FONT_FILE_PATH}'。請確認檔案已上傳至應用程式根目錄。")
+        return ImageFont.load_default()
 
 def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     """
     使用 Pillow 函式庫，在伺服器端生成帶有文章標題的圖片模板。
-    核心修改：新增底部黑色半透明遮罩，優化中文排版，並移除描邊。
     """
     # 定義尺寸 (1000px max dimension)
     MAX_DIM = 1000
@@ -117,25 +109,20 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
 
 
     # --- 2. 新增底部半透明黑色遮罩 (Overlay) ---
-    # 遮罩高度約佔圖片底部的 25% (從 75% 高度開始)，但為了讓文字更靠底，我們將遮罩起點向下調整
-    OVERLAY_START_Y = int(HEIGHT * 0.70) # 從 70% 高度開始
+    OVERLAY_START_Y = int(HEIGHT * 0.70) 
     
-    # 建立一個新的 RGBA 圖片用於遮罩
     overlay = Image.new('RGBA', (WIDTH, HEIGHT), (0, 0, 0, 0))
     overlay_draw = ImageDraw.Draw(overlay)
     
-    # 繪製半透明的黑色矩形 (Alpha=150/255，約 60% 透明度)
-    opacity = 180 # 提高不透明度，使遮罩更明顯
+    opacity = 180 
     overlay_draw.rectangle([0, OVERLAY_START_Y, WIDTH, HEIGHT], fill=(0, 0, 0, opacity))
     
-    # 將遮罩疊加到主圖上
     img = Image.alpha_composite(img.convert('RGBA'), overlay).convert('RGB')
-    draw = ImageDraw.Draw(img) # 重新獲取 Draw 物件
+    draw = ImageDraw.Draw(img) 
 
     # --- 3. 繪製頂部模板標題 ---
     title_size = int(WIDTH / 35)
     title_font = get_font(title_size, bold=True)
-    # 這裡使用 fill="#999999" 讓頂部標題與底部主標題有所區分
     draw.text((WIDTH / 2, HEIGHT * 0.08), 
               "【社群內容加速器】視覺模板", 
               fill="#999999", 
@@ -146,14 +133,12 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     
     article_to_display = title or "請輸入文章標題以跟風熱點..."
     
-    # 設置字型 (40pt 約等於 70px)
-    ARTICLE_FONT_SIZE = 80 # 稍微增大字體以符合圖示中文字較大的感覺
+    ARTICLE_FONT_SIZE = 80 
     
-    # 兩個比例都使用 bold 字型
-    article_font = get_font(ARTICLE_FONT_SIZE, bold=True)
+    # 這裡的 bold 參數已經失效，因為 get_font 函式被修改為只載入 FONT_FILE_PATH
+    article_font = get_font(ARTICLE_FONT_SIZE, bold=True) 
     
     # 實現多行自動換行
-    # 調整為更寬鬆的字元限制
     CHAR_LIMIT = 12 if WIDTH < 1000 else 18 
     
     lines = []
@@ -165,17 +150,14 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
             lines.append(current_line)
             current_line = char
     lines.append(current_line)
-    # 重新處理，確保行尾不會有過多空格，且空行被移除
     lines = [line.strip() for line in lines if line.strip()]
 
     # 定位：置中靠下 (底部錨點)
-    line_height = ARTICLE_FONT_SIZE * 1.3 # 調整行距
+    line_height = ARTICLE_FONT_SIZE * 1.3 
     total_text_height = len(lines) * line_height
 
-    # 將文字塊的底部邊緣對齊到 HEIGHT * 0.90
     Y_BOTTOM_ANCHOR = HEIGHT * 0.90 
     
-    # 計算第一行的起始Y座標 
     y_start = Y_BOTTOM_ANCHOR - total_text_height 
 
     # 繪製
@@ -184,10 +166,9 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
                   line, 
                   fill="#ffffff", 
                   font=article_font, 
-                  anchor="mt") # 移除描邊 (stroke_width)
+                  anchor="mt") 
 
-    # --- 5. 新增底部版權標示 (模擬 ETtoday) ---
-    # 字體更小，顏色較暗
+    # --- 5. 新增底部版權標示 ---
     caption_size = int(WIDTH / 50)
     caption_font = get_font(caption_size, bold=False)
     draw.text((WIDTH / 2, HEIGHT * 0.96), 
@@ -360,7 +341,7 @@ with st.container():
 # --- 模組 2: 視覺模板預覽 ---
 st.markdown("#### 🖼️ 視覺模板預覽")
 visual_img = generate_visual_content(article_title, ratio, uploaded_file)
-st.image(visual_img, caption="視覺內容預覽 (已嘗試修正中文字型亂碼問題)", use_column_width='auto')
+st.image(visual_img, caption=f"視覺內容預覽 (請確保字型檔 {FONT_FILE_PATH} 已上傳)", use_column_width='auto')
 
 # --- 下載按鈕 (只留 JPG) ---
 img_byte_arr_jpg = BytesIO()
