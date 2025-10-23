@@ -108,8 +108,8 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
 
 
     # --- 2. 新增底部半透明黑色遮罩 (Overlay) ---
-    # 調整：黑底總高度為 50%，因此從 50% 高度開始
-    OVERLAY_START_Y = int(HEIGHT * 0.50) 
+    # 調整：黑底總高度為 40% (從 60% 高度開始)，更接近參考圖效果。
+    OVERLAY_START_Y = int(HEIGHT * 0.60) 
     
     overlay = Image.new('RGBA', (WIDTH, HEIGHT), (0, 0, 0, 0))
     overlay_draw = ImageDraw.Draw(overlay)
@@ -165,14 +165,16 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     lines = [line.strip() for line in final_lines if line.strip()] 
     # --- 結束修正 ---
 
-    # 定位：置中靠下 (底部錨點)
+    # 定位：將文字區塊垂直置中於遮罩內
     line_height = ARTICLE_FONT_SIZE * 1.3 
     total_text_height = len(lines) * line_height
 
-    # 調整：文字錨點離底部 20%，即在圖片高度的 80% 處
-    Y_BOTTOM_ANCHOR = HEIGHT * 0.80 
+    # 計算遮罩的垂直中心點
+    Y_OVERLAY_CENTER = (OVERLAY_START_Y + HEIGHT) / 2
     
-    y_start = Y_BOTTOM_ANCHOR - total_text_height 
+    # 計算文字區塊的起始 Y 座標，使其中心點對齊遮罩中心點
+    # y_start 是整個文字區塊的頂部
+    y_start = Y_OVERLAY_CENTER - (total_text_height / 2) 
 
     # 繪製
     for i, line in enumerate(lines):
@@ -180,7 +182,7 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
                   line, 
                   fill="#ffffff", 
                   font=article_font, 
-                  anchor="mt") 
+                  anchor="mt") # anchor="mt" ensures horizontal center alignment
 
     # --- 5. 新增底部版權標示 (已移除/註解) ---
     # caption_size = int(WIDTH / 50)
@@ -239,7 +241,7 @@ def generate_ai_copy(article_title):
         
         # 檢查並提取生成的文本
         if result and 'candidates' in result and len(result['candidates']) > 0 and 'parts' in result['candidates'][0]['content']:
-            text = result['candidates'][0]['content']['parts'][0]['text']
+            text = result['candidates'][0]['content']['parts'][0].text
             return text.strip()
         else:
             st.error("⚠️ Gemini API 回傳格式錯誤或無內容。")
