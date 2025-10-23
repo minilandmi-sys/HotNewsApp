@@ -108,8 +108,8 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
 
 
     # --- 2. 新增底部半透明黑色遮罩 (Overlay) ---
-    # 調整：黑底總高度為 40% (從 60% 高度開始)，更接近參考圖效果。
-    OVERLAY_START_Y = int(HEIGHT * 0.60) 
+    # 調整：黑底總高度為 30% (從 70% 高度開始)，使黑底更窄。
+    OVERLAY_START_Y = int(HEIGHT * 0.70) 
     
     overlay = Image.new('RGBA', (WIDTH, HEIGHT), (0, 0, 0, 0))
     overlay_draw = ImageDraw.Draw(overlay)
@@ -166,7 +166,8 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     # --- 結束修正 ---
 
     # 定位：將文字區塊垂直置中於遮罩內
-    line_height = ARTICLE_FONT_SIZE * 1.3 
+    # 調整行距，使文字更緊湊
+    line_height = ARTICLE_FONT_SIZE * 1.2 
     total_text_height = len(lines) * line_height
 
     # 計算遮罩的垂直中心點
