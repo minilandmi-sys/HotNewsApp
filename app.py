@@ -68,20 +68,38 @@ def fetch_top5_each_site():
 # ================= 模組 2：視覺內容生成 (Pillow 實現) =================
 
 def get_font(size, bold=False):
-    """嘗試載入常見字體，若失敗則回傳預設字體"""
-    try:
-        # 模擬字體風格：bold 用於 canva sans (4:3)，regular 用於 helvetica word (1:1)
-        # Note: 在實際部署環境中，您可能需要提供 'Impact.ttf' 或 CJK 字體檔案
-        font_name = "arial.ttf" if not bold else "arialbd.ttf"
-        return ImageFont.truetype(font_name, size)
-    except IOError:
-        # 若找不到特定字體，使用預設字體
-        return ImageFont.load_default()
+    """
+    嘗試載入 CJK 字體以正確顯示中文 (如微軟正黑體或 Noto Sans CJK)。
+    Note: 由於運行環境無法確定字型路徑，這是一個最佳嘗試。
+    """
+    # 根據 Streamlit 運行環境，嘗試載入常見的 CJK 字型名稱。
+    # 如果您將微軟正黑體 (.ttc) 上傳到應用目錄，可以直接指定路徑。
+    cjk_font_paths = [
+        "msjh.ttc",            # 微軟正黑體
+        "NotoSansCJK-Regular.ttc", # Noto CJK (Regular)
+        "NotoSansCJK-Bold.ttc",    # Noto CJK (Bold)
+        "simhei.ttf"               # 簡體環境下的黑體
+    ]
+    
+    font_files = [
+        "msjhbd.ttc" if bold else "msjh.ttc", # 微軟正黑體 (Bold/Regular)
+        "NotoSansCJK-Bold.ttc" if bold else "NotoSansCJK-Regular.ttc", # Noto CJK (Bold/Regular)
+    ]
+    
+    # 嘗試載入 CJK 字體
+    for path in font_files + cjk_font_paths:
+        try:
+            return ImageFont.truetype(path, size)
+        except IOError:
+            continue
+            
+    # 最終備援：使用預設字體 (中文顯示效果可能不佳)
+    return ImageFont.load_default()
 
 def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     """
     使用 Pillow 函式庫，在伺服器端生成帶有文章標題的圖片模板。
-    核心修改：1:1 為方型，4:3 改為 3:4 直式版型，標題置中靠下 40pt (約 70px)。
+    新增底部黑色半透明遮罩，並優化字型載入以解決中文排版問題。
     """
     # 定義尺寸 (1000px max dimension)
     MAX_DIM = 1000
@@ -92,23 +110,35 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
         WIDTH = MAX_DIM # 1000
         HEIGHT = MAX_DIM # 1000
     
+    # 1. 載入背景圖或建立基礎圖
     if uploaded_file is not None:
-        # 載入上傳的圖片並縮放至模板尺寸
         try:
             img = Image.open(uploaded_file).convert("RGB")
             # 使用 LANCZOS 演算法進行高品質縮放
             img = img.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
-        except Exception as e:
-            # 圖片載入失敗，使用藍色預設模板作為備援
-            st.warning(f"⚠️ 圖片載入失敗，使用藍色預設模板。錯誤: {e}")
+        except Exception:
             img = Image.new('RGB', (WIDTH, HEIGHT), color='#1e3a8a')
     else:
-        # 建立基礎圖片 (藍色背景作為模板)
         img = Image.new('RGB', (WIDTH, HEIGHT), color='#1e3a8a')
 
-    draw = ImageDraw.Draw(img)
 
-    # --- 模板標題 (保持原有的動態尺寸和位置，避免混淆) ---
+    # --- 2. 新增底部半透明黑色遮罩 (Overlay) ---
+    # 遮罩高度約佔圖片底部的 25% (從 75% 高度開始)
+    OVERLAY_START_Y = int(HEIGHT * 0.75) 
+    
+    # 建立一個新的 RGBA 圖片用於遮罩
+    overlay = Image.new('RGBA', (WIDTH, HEIGHT), (0, 0, 0, 0))
+    overlay_draw = ImageDraw.Draw(overlay)
+    
+    # 繪製半透明的黑色矩形 (Alpha=150/255，約 60% 透明度)
+    opacity = 150 
+    overlay_draw.rectangle([0, OVERLAY_START_Y, WIDTH, HEIGHT], fill=(0, 0, 0, opacity))
+    
+    # 將遮罩疊加到主圖上
+    img = Image.alpha_composite(img.convert('RGBA'), overlay).convert('RGB')
+    draw = ImageDraw.Draw(img) # 重新獲取 Draw 物件
+
+    # --- 3. 繪製頂部模板標題 ---
     title_size = int(WIDTH / 35)
     title_font = get_font(title_size, bold=True)
     draw.text((WIDTH / 2, HEIGHT * 0.08), 
@@ -117,50 +147,55 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
               font=title_font, 
               anchor="mm")
     
-    # --- 文章標題 (核心修改：40pt 尺寸，置中靠下) ---
+    # --- 4. 繪製文章標題 (置中靠下，在遮罩上) ---
     
     article_to_display = title or "請輸入文章標題以跟風熱點..."
     
-    # 1. 設置字型 (40pt 約等於 70px)
+    # 設置字型 (40pt 約等於 70px)
     ARTICLE_FONT_SIZE = 70 
     
-    # 根據比例設定字型屬性
-    if ratio == '4:3': # 3:4 Vertical, 模擬 "canva sans" (使用 bold)
-        article_font = get_font(ARTICLE_FONT_SIZE, bold=True)
-    else: # 1:1 Square, 模擬 "helvetica word" (使用 regular)
-        article_font = get_font(ARTICLE_FONT_SIZE, bold=False)
-
-    # 2. 實現多行自動換行
-    # 針對中文標題，調整字元限制 (750px 寬度較窄)
-    CHAR_LIMIT = 20 if WIDTH < 1000 else 25 
+    # 根據比例設定字型屬性：兩個比例都使用 bold 模擬微軟正黑體粗體字型風格
+    article_font = get_font(ARTICLE_FONT_SIZE, bold=True)
+    
+    # 實現多行自動換行
+    # 針對中文標題，調整字元限制 (750px 寬度較窄，1:1 較寬)
+    CHAR_LIMIT = 15 if WIDTH < 1000 else 20 
     
     lines = []
     current_line = ""
     for char in article_to_display:
-        if len(current_line) < CHAR_LIMIT:
+        # 在遇到空格或符號時也嘗試斷行，讓中文排版更自然
+        if len(current_line) < CHAR_LIMIT and char not in '，。、！？：；':
             current_line += char
         else:
+            # 確保標點符號不單獨成行 (簡單處理)
+            if char in '，。、！？：；' and len(lines) > 0:
+                 lines[-1] += char
+                 continue
             lines.append(current_line)
             current_line = char
     lines.append(current_line)
     lines = [line.strip() for line in lines if line.strip()]
 
-    # 3. 定位：置中靠下 (底部錨點在圖片高度 90% 處)
-    line_height = ARTICLE_FONT_SIZE * 1.3 # 設定行距
+    # 定位：置中靠下 (底部錨點在圖片高度 90% 處)
+    line_height = ARTICLE_FONT_SIZE * 1.5 # 增加行距，讓文字更寬鬆
     total_text_height = len(lines) * line_height
 
-    Y_BOTTOM_ANCHOR = HEIGHT * 0.90 # 圖片底部的 90%
+    # 將文字塊的底部邊緣對齊到 HEIGHT * 0.90
+    Y_BOTTOM_ANCHOR = HEIGHT * 0.90 
     
-    # 計算第一行的起始Y座標 (讓整個文字塊置中靠下)
+    # 計算第一行的起始Y座標 
     y_start = Y_BOTTOM_ANCHOR - total_text_height 
 
-    # 4. 繪製
+    # 繪製
     for i, line in enumerate(lines):
         draw.text((WIDTH / 2, y_start + i * line_height), 
                   line, 
                   fill="#ffffff", 
                   font=article_font, 
-                  anchor="mt") # 使用 'mt' (middle-top) 錨點進行置中對齊
+                  anchor="mt", # 使用 'mt' (middle-top) 錨點進行置中對齊
+                  stroke_width=2, # 添加描邊來模擬粗體和清晰度
+                  stroke_fill="#000000") 
 
     return img
 
@@ -342,7 +377,7 @@ with st.container():
 # --- 模組 2: 視覺模板預覽 ---
 st.markdown("#### 🖼️ 視覺模板預覽")
 visual_img = generate_visual_content(article_title, ratio, uploaded_file)
-st.image(visual_img, caption="視覺內容預覽 (由 Pillow 模擬 Canvas 繪製，已支援長標題換行與自訂背景)", use_column_width='auto')
+st.image(visual_img, caption="視覺內容預覽 (已加入底部遮罩並優化中文排版)", use_column_width='auto')
 
 # --- 下載按鈕 (只留 JPG) ---
 # 只保留 JPG 下載按鈕
