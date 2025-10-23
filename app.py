@@ -282,7 +282,7 @@ with st.container():
             
             # 嘗試保持當前編輯中的標題在選單中被選中
             try:
-                default_index = titles.index(st.session_state.editable_article_title)
+                default_index = titles.index(st.session_state.editable_article_title) if st.session_state.editable_article_title in titles else 0
             except ValueError:
                 default_index = 0
             
@@ -296,23 +296,25 @@ with st.container():
             )
             
             # 可編輯文字輸入框：用於顯示和修改選中的標題
-            article_title = st.text_input(
+            st.text_input(
                 "編輯或輸入文章標題:", 
                 value=st.session_state.editable_article_title, # 從 session_state 讀取初始值
-                key="article_title_input"
+                key="editable_article_title" # <--- 直接使用 canonical key
             )
             
-            # 將輸入框最新的內容存回 session_state，供下次頁面載入時保持
-            st.session_state.editable_article_title = article_title
+            # 移除舊的 local variable article_title 賦值和狀態同步，因為 key 已直接綁定
 
         else:
             # Fallback if no report is generated
-            article_title = st.text_input(
+            st.text_input(
                 "手動輸入文章標題 (請先產生報表):", 
                 value=st.session_state.editable_article_title, 
-                key="article_title_input_only"
+                key="editable_article_title" # <--- 直接使用 canonical key
             )
-            st.session_state.editable_article_title = article_title
+            # 移除舊的 local variable article_title 賦值和狀態同步
+
+    # <--- 在容器外定義 article_title，確保使用最新的 editable_article_title 狀態
+    article_title = st.session_state.editable_article_title
         
     with col2:
         # 模組 2: 比例選擇
