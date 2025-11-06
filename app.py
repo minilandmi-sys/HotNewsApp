@@ -24,8 +24,6 @@ RSS_FEEDS = {
     "Women's Health TW": "https://www.womenshealthmag.com/tw/rss/all.xml",
     "BEAUTY美人圈": "https://www.beauty321.com/feed_pin",
     "A Day Magazine": "https://www.adaymag.com/feed"
-    "thefemin": "https://thefemin.com/category/editorial/issue/feed"
-    "popbee": "http://popbee.com/feed"
 }
 
 # ================= 輔助函式 (原有的 RSS 處理) =================
@@ -469,4 +467,5 @@ if st.button("✨ 生成優化社群標題", key="generate_new_copy_btn"):
 if 'accelerator_copy' in st.session_state and st.session_state.accelerator_copy:
     st.success("✅ 3 份優化標題生成完成！") 
     st.markdown(st.session_state.accelerator_copy)
+
 
