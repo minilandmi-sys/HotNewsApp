@@ -105,7 +105,8 @@ def generate_prompt(style_key, template_text, core_content, variable_values):
 
 def prompt_system_page():
     """Streamlit 頁面的主函式，包含 UI 和邏輯。"""
-    st.set_page_config(layout="wide") # 使用寬版佈局
+    
+    # 標題應放在主內容區
     st.title("🤖 社群專用 Prompt 系統")
     st.markdown("---")
 
@@ -114,7 +115,8 @@ def prompt_system_page():
     # 初始化一個字典來存儲動態變數的值
     variable_values = {}
 
-    # --- 左側欄/風格選擇 (S1.1) ---
+    # --- 左側欄/風格選擇與模板管理 (S1.1, T2.1, T2.3) ---
+    # 所有側邊欄的內容都必須放在 with st.sidebar: 區塊內
     with st.sidebar:
         st.header("1️⃣ 選擇輸出風格")
         selected_style = st.selectbox(
@@ -130,9 +132,16 @@ def prompt_system_page():
         
         # 模板選擇器
         template_names = list(st.session_state.custom_templates.keys())
+        # 使用 try-except 處理當模板剛被刪除，selected_template_name 尚未更新時可能出現的 KeyError
+        try:
+            default_index = template_names.index(st.session_state.selected_template_name)
+        except ValueError:
+             default_index = 0
+
         st.session_state.selected_template_name = st.selectbox(
             "載入已儲存模板：",
             template_names,
+            index=default_index, # 確保預設選中正確的值
             key='template_loader'
         )
         
@@ -152,13 +161,15 @@ def prompt_system_page():
         )
         
         # 儲存模板按鈕 (T2.3)
-        col_save, col_delete = st.columns([2, 1])
+        st.markdown("---")
+        template_name_input = st.text_input(
+            "儲存為新模板名稱：", 
+            value=st.session_state.selected_template_name,
+            key='new_template_name'
+        )
+        
+        col_save, col_delete = st.columns(2)
         with col_save:
-            template_name_input = st.text_input(
-                "儲存為新模板名稱：", 
-                value=st.session_state.selected_template_name,
-                key='new_template_name'
-            )
             if st.button("💾 儲存/更新模板"):
                 if template_name_input:
                     st.session_state.custom_templates[template_name_input] = edited_template
@@ -169,9 +180,10 @@ def prompt_system_page():
                     st.error("請輸入模板名稱！")
         
         with col_delete:
-            st.markdown("##### ")
+            # 只有當模板數量大於 1 時才允許刪除 (保留至少一個模板)
             if len(template_names) > 1 and st.button("🗑️ 刪除模板"):
                 del st.session_state.custom_templates[st.session_state.selected_template_name]
+                # 刪除後，選擇列表中的第一個模板作為新的預設值
                 st.session_state.selected_template_name = list(st.session_state.custom_templates.keys())[0]
                 st.warning(f"已刪除模板：『{st.session_state.selected_template_name}』")
                 st.rerun()
