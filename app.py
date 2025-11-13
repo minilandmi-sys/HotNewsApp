@@ -1,18 +1,4 @@
 import streamlit as st
-# 設置 App 基礎配置
-# 注意：st.set_page_config 必須是第一個 Streamlit 指令！
-st.set_page_config(
-    page_title="社群應用程式",
-    layout="wide",
-    initial_sidebar_state="expanded" # 確保側邊欄在啟動時是展開的
-)
-
-# --- 您的應用程式主頁面內容 ---
-
-st.title("📰 熱門新聞分析主頁")
-st.markdown("---")
-st.info("歡迎使用本應用程式。請透過左側的導航選單切換至 **『社群 Prompt 系統』** 功能。")
-st.write("這個頁面是您的應用程式主入口。")
 import feedparser
 import pandas as pd
 from datetime import datetime
@@ -358,6 +344,7 @@ st.download_button(
     file_name=f"{article_title[:10].replace('/', '_')}_image_{ratio}.png", 
     mime="image/png"
 )
+
 
 
 
