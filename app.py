@@ -52,11 +52,16 @@ def parse_entries(entries):
 
 def fetch_top5_each_site():
     all_entries = []
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+
     for site, url in RSS_FEEDS.items():
-        # 為了容錯，增加 try-except 處理 URL 錯誤或解析失敗
         try:
-            feed = feedparser.parse(url)
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            feed = feedparser.parse(response.text)
+
             if not feed.entries:
+                st.warning(f"⚠️ {site} 沒有抓到文章。")
                 continue
 
             entries = parse_entries(feed.entries)
@@ -72,6 +77,7 @@ def fetch_top5_each_site():
 
     all_entries.sort(key=lambda x: x["發佈時間"], reverse=True)
     return pd.DataFrame(all_entries)
+
 
 # ================= 模組 2：視覺內容生成 (Pillow 實現) =================
 
@@ -472,3 +478,4 @@ if st.button("✨ 生成優化社群標題", key="generate_new_copy_btn"):
 if 'accelerator_copy' in st.session_state and st.session_state.accelerator_copy:
     st.success("✅ 3 份優化標題生成完成！")
     st.markdown(st.session_state.accelerator_copy)
+
