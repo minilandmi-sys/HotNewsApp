@@ -73,13 +73,15 @@ def get_font(size, bold=False):
         st.warning(f"⚠️ 嚴重警告：找不到字型檔案 '{FONT_FILE_PATH}'。請確認檔案已上傳至應用程式根目錄。")
         return ImageFont.load_default()
 
-def generate_visual_content(title, ratio='1:1', uploaded_file=None):
+def generate_visual_content(title, ratio='1:1', uploaded_file=None, font_size=40, font_color="#ffffff"):
     """
     使用 Pillow 函式庫，在伺服器端生成帶有文章標題的圖片模板。
     Args:
         title (str): 文章標題。
         ratio (str): 圖片比例 ('1:1' 或 '4:3')。
         uploaded_file (Optional): 上傳的背景圖片檔案。
+        font_size (int): 字型大小。
+        font_color (str): 字型顏色 (HEX)。
     """
     # 定義尺寸 (1000px max dimension)
     MAX_DIM = 1000
@@ -151,12 +153,11 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     
     article_to_display = title or "請輸入文章標題以跟風熱點..."
     
-    ARTICLE_FONT_SIZE = 40 
+    article_font = get_font(font_size, bold=True) 
     
-    article_font = get_font(ARTICLE_FONT_SIZE, bold=True) 
-    
-    # 實現多行自動換行
-    CHAR_LIMIT = 24 if WIDTH < 1000 else 36 
+    # 實現多行自動換行 (根據字型大小調整換行字數上限)
+    # 粗略估計：每行字數上限會隨字體變大而減少
+    CHAR_LIMIT = int((WIDTH / font_size) * 1.5)
     
     # 支援 st.text_area 輸入的換行符號
     final_lines = []
@@ -182,7 +183,7 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     lines = [line.strip() for line in final_lines if line.strip()] 
 
     # 定位：將文字區塊垂直置中於新的遮罩區塊內
-    line_height = ARTICLE_FONT_SIZE * 1.3 
+    line_height = font_size * 1.3 
     total_text_height = len(lines) * line_height
 
     # 計算新遮罩區塊的垂直中心點 (75% to 90%)
@@ -195,7 +196,7 @@ def generate_visual_content(title, ratio='1:1', uploaded_file=None):
     for i, line in enumerate(lines):
         draw.text((WIDTH / 2, y_start + i * line_height), 
                   line, 
-                  fill="#ffffff", 
+                  fill=font_color, 
                   font=article_font, 
                   anchor="mt")
     
@@ -300,14 +301,24 @@ with st.container():
         
         uploaded_file = st.file_uploader("🖼️ 上傳背景圖片 (可選)", type=["jpg", "jpeg", "png"])
 
+# 新增：字型樣式設定區
+st.markdown("##### 🎨 字型樣式設定")
+c1, c2 = st.columns(2)
+with c1:
+    custom_font_size = st.slider("調整字型大小", min_value=20, max_value=100, value=40, step=2)
+with c2:
+    custom_font_color = st.color_picker("選擇字型顏色", value="#ffffff")
+
 # 模組 2: 視覺模板預覽
 st.markdown("#### 🖼️ 視覺模板預覽")
 
-# 1. 根據選定的比例生成圖片 (用於下載)
+# 1. 根據選定的比例生成圖片 (使用自定義字型參數)
 visual_img_selected = generate_visual_content(
     article_title, 
     ratio, 
-    uploaded_file
+    uploaded_file,
+    font_size=custom_font_size,
+    font_color=custom_font_color
 )
 
 # 2. 生成另一個比例的圖片 (用於對照預覽)
@@ -315,7 +326,9 @@ other_ratio = '4:3' if ratio == '1:1' else '1:1'
 visual_img_other = generate_visual_content(
     article_title, 
     other_ratio, 
-    uploaded_file
+    uploaded_file,
+    font_size=custom_font_size,
+    font_color=custom_font_color
 )
 
 # 3. 顯示兩個預覽
@@ -344,9 +357,3 @@ st.download_button(
     file_name=f"{article_title[:10].replace('/', '_')}_image_{ratio}.png", 
     mime="image/png"
 )
-
-
-
-
-
-
