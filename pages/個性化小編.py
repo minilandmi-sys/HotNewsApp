@@ -31,4 +31,56 @@ def simulate_smart_editor(input_text):
         bodies = [
             f"關於「{input_text[:10]}...」，其實重點就在這裡。不說官腔話，直接帶大家看關鍵。📝",
             "生活忙碌，小編懂大家沒時間看長篇大論，所以幫大家把這則資訊整理好了。🌿",
-            "這種
+            "這種事真的發生在我們日常生活中，找到共同記憶點才是最重要的。"
+        ]
+        closings = ["大家覺得這件事該怎麼看？下方留言交流！👇", "如果是你，你會怎麼處理呢？告訴小編吧！", "別忘了分享給身邊的人知道最新狀況！"]
+    
+    else:
+        # 預設：日常親切風格
+        openings = ["大家今天好嗎？✨", "小編剛才滑到這個，覺得超有感...", "關於這件事，其實我有個小秘密想分享..."]
+        bodies = [
+            f"雖然「{input_text[:8]}...」看起來很平常，但生活不就是這些細節組成的嗎？",
+            "比起那些嚴肅的內容，我更喜歡這種貼近大家的真實感。🌿",
+            "有時候不需要多華麗的文字，簡單的共鳴才是最有溫度的。"
+        ]
+        closings = ["留言告訴我你的看法吧！💬", "大家今天也有遇到有趣的事嗎？來跟我聊聊！", "按讚分享，讓我知道你也喜歡這種風格。"]
+
+    # 隨機組合生成結果
+    result = f"{random.choice(openings)}\n\n{random.choice(bodies)}\n\n{random.choice(closings)}"
+    return result
+
+# --- 2. Streamlit 介面 ---
+st.set_page_config(page_title="個性化小編", layout="wide")
+
+st.title("✍️ 個性化小編引言產生器")
+st.caption("無須 API，根據內容自動切換《ETtoday》或《Vogue》語氣。")
+
+# 建立左右兩欄
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("📢 原始內容輸入")
+    user_input = st.text_area("請輸入內容 (例如：LV新出的鑲鑽運動鞋)：", height=300)
+    generate_btn = st.button("✨ 產生小編引言", type="primary", use_container_width=True)
+
+with col2:
+    st.subheader("📄 生成結果")
+    if generate_btn:
+        if user_input:
+            with st.spinner("小編正在構思中..."):
+                final_result = simulate_smart_editor(user_input)
+                st.success("引言已生成！")
+                st.text_area("預覽與複製：", value=final_result, height=300)
+        else:
+            st.warning("⚠️ 請先輸入內容喔！")
+
+# --- 側邊欄 ---
+with st.sidebar:
+    st.header("👤 小編人設檔案")
+    st.markdown("""
+    - **人設核心**：無距離感、貼近粉絲。
+    - **風格參考**：ETtoday (親切)、Vogue (質感)。
+    - **規則**：簡要、不重複、拒絕官腔。
+    """)
+    st.write("---")
+    st.caption("Status: Running smoothly (Local Mode)")
