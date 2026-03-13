@@ -1,76 +1,77 @@
 import streamlit as st
-import google.generativeai as genai
-import os
 
-# --- 1. 配置 Gemini API ---
-# 提醒：在 Streamlit Cloud 部署時，請在 Settings > Secrets 設定 GOOGLE_API_KEY
-genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-model = genai.GenerativeModel('gemini-1.5-flash')
-
-def generate_ai_intro(content):
+def generate_editor_intro(input_text):
     """
-    呼叫 Gemini 產生符合特定人設的引言
+    這是一個模擬生成函式。
+    目前不會呼叫 AI API，僅根據你提供的人設邏輯展示固定回覆格式。
     """
-    prompt = f"""
-    你是一個社群小編，擅長透過貼近粉絲、了解群眾、運用平台特性，以無距離感的口吻創造品牌個性。
-    風格參考：
-    - 《ETtoday新聞雲》：親切、抓重點、日常語調。
-    - 《Vogue》：時髦、生活化、有質感但不官腔。
-    規則：簡要說明，不重複太多字，拒絕官腔，找到共同記憶點。
-
-    請針對以下內容撰寫一段吸引人的社群引言：
-    ---
-    {content}
-    ---
-    """
+    # 這是你指定的人設設定，已放入邏輯中
+    # 規則：簡要說明，不重複太多字，拒絕官腔
     
-    try:
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        return f"產生失敗，錯誤訊息：{e}"
+    intro_template = f"""【小編精選引言】✨
 
-# --- 2. 頁面介面 ---
-st.set_page_config(page_title="個性化小編", layout="wide")
+大家最近有注意到嗎？關於「{input_text[:15]}...」
+
+其實生活就是這樣，不需要太多官腔，只要一點點共鳴就能很有溫度。
+不管是像 ETtoday 的親切感，還是帶點 Vogue 的時髦質感，我們都要活出自己的品牌個性！
+
+#日常 #品牌個性 #不官腔"""
+
+    return intro_template
+
+# --- 頁面配置 ---
+st.set_page_config(page_title="個性化小編 - Social Media Editor", layout="wide")
 
 st.title("✍️ 個性化小編引言產生器")
-st.markdown("---")
+st.caption("輸入一段文字，透過「無距離感小編」人設為你撰寫引言。")
 
-col1, col2 = st.columns([1, 1])
-
-with col1:
-    st.subheader("📢 原始內容輸入")
-    user_input = st.text_area(
-        "請輸入新聞內容或想要轉換的文字：",
-        placeholder="把你想發布的內容貼在這裡...",
-        height=300
-    )
+# --- 介面設計 ---
+with st.container():
+    col1, col2 = st.columns([1, 1])
     
-    # 增加一個風格微調選項（選填）
-    tone_option = st.radio("偏好風格：", ["綜合風格", "偏向 ETtoday (親切)", "偏向 Vogue (質感)"], horizontal=True)
-    
-    generate_btn = st.button("✨ 產生小編引言", type="primary", use_container_width=True)
+    with col1:
+        st.subheader("📢 原始內容輸入")
+        user_input = st.text_area(
+            "請貼上新聞標題、文章段落或想分享的話：",
+            placeholder="例如：最新的保養趨勢或是時裝週消息...",
+            height=250
+        )
+        
+        generate_btn = st.button("✨ 產生小編引言", type="primary", use_container_width=True)
 
-with col2:
-    st.subheader("📄 AI 建議引言")
-    if generate_btn:
-        if user_input:
-            with st.spinner("AI 小編正在思考如何與粉絲對話..."):
-                # 如果有選特定風格，可以在這裡微調 prompt（選配）
-                final_result = generate_ai_intro(user_input)
-                
-                st.markdown("---")
-                st.success("生成成功！")
-                st.write(final_result)
-                st.button("📋 複製文字 (請手動選取)")
-        else:
-            st.warning("小編需要一點內容才能發揮喔！")
+    with col2:
+        st.subheader("📄 生成結果")
+        if generate_btn:
+            if user_input:
+                with st.spinner("小編正在構思中..."):
+                    # 呼叫模擬邏輯
+                    result = generate_editor_intro(user_input)
+                    st.success("引言已模擬生成成功！")
+                    st.text_area("預覽內容 (可手動修改)：", value=result, height=250)
+                    
+                    # 貼心小功能：清空按鈕
+                    if st.button("清除結果"):
+                        st.rerun()
+            else:
+                st.warning("⚠️ 請先輸入一些文字內容，小編才好發揮喔！")
 
-# --- 3. 側邊欄：人設預覽 ---
-with st.sidebar:
-    st.header("小編人設檔案")
-    st.info("""
-    **核心個性：** 無距離感、創造品牌個性。
-    **參考對象：** ETtoday, Vogue。
-    **禁忌：** 拒絕官腔、重複贅字。
-    """)
+# --- 側邊欄：完整人設說明 ---
+st.sidebar.markdown("### 👤 小編人設檔案")
+st.sidebar.info(
+    """
+    **核心個性：**
+    你是一個社群小編，擅長透過貼近粉絲、了解群眾、運用平台特性，以無距離感的口吻創造品牌個性。
+
+    **風格參考：**
+    - **ETtoday新聞雲：** 親切、抓重點、日常語調。
+    - **Vogue：** 時髦、生活化、有質感但不官腔。
+
+    **寫作規則：**
+    - 簡要說明，不重複太多字。
+    - 拒絕官腔。
+    - 找到粉絲的共同記憶點。
+    """
+)
+
+st.sidebar.write("---")
+st.sidebar.caption("目前的版本為：**靜態演示版**（無須 API KEY）")
