@@ -58,4 +58,8 @@ def render_canvas_generator(title):
     components.html(canvas_html, height=550)
 
 # 呼叫 Canvas 產生器，帶入當前選定的標題
-render_canvas_generator(article_title)
+# 使用 try/except 保護，或檢查變數是否存在
+if 'article_title' in locals() or 'article_title' in globals():
+    render_canvas_generator(article_title)
+else:
+    render_canvas_generator("預設標題")
