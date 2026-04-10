@@ -354,9 +354,12 @@ img_byte_arr_png.seek(0)
 st.download_button(
     label="⬇️ 下載成品 (PNG) - 無損畫質",
     data=img_byte_arr_png.getvalue(),
-    file_name=f"{article_title[:10].replace('/', '_')}_image_{ratio}.png", 
+    file_name="social_image.png",
     mime="image/png"
 )
+
+# 這裡空一行
+st.write("---")
     # ================= 新增：JavaScript Canvas 高級圖卡產生器 =================
 st.markdown("---")
 st.header("✨ 高級圖卡產生器 (Canvas 版)")
