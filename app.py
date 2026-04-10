@@ -356,6 +356,7 @@ st.download_button(
     data=img_byte_arr_png.getvalue(),
     file_name=f"{article_title[:10].replace('/', '_')}_image_{ratio}.png", 
     mime="image/png"
+)
     # ================= 新增：JavaScript Canvas 高級圖卡產生器 =================
 st.markdown("---")
 st.header("✨ 高級圖卡產生器 (Canvas 版)")
