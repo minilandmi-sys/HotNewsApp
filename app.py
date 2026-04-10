@@ -9,11 +9,11 @@ from PIL import Image, ImageDraw, ImageFont
 
 # 5 個網站的 RSS
 RSS_FEEDS = {
-    "妞新聞": "https://www.niusnews.com/feed",
-    "Women's Health TW": "https://www.womenshealthmag.com/tw/rss/all.xml",
-    "BEAUTY美人圈": "https://www.beauty321.com/feed_pin",
-    "A Day Magazine": "https://www.adaymag.com/feed",
-    "The Femin": "https://thefemin.com/category/editorial/issue/feed"
+    "妞新聞":"https://www.niusnews.com/feed",
+    "Women's Health TW":"https://www.womenshealthmag.com/tw/rss/all.xml",
+    "BEAUTY美人圈":"https://www.beauty321.com/feed_pin",
+    "A Day Magazine":"https://www.adaymag.com/feed",
+    "The Femin":"https://thefemin.com/category/editorial/issue/feed"
 }
 # ================= 輔助函式 (原有的 RSS 處理) =================
 def parse_entries(entries):
