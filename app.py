@@ -18,23 +18,23 @@ RSS_FEEDS = {
 # ================= 輔助函式 (原有的 RSS 處理) =================
 def parse_entries(entries):
 parsed_list=[]
-    for entry in entries:
-        published_time = None
-        if hasattr(entry, "published_parsed") and entry.published_parsed:
-            published_time = datetime(*entry.published_parsed[:6])
-        elif hasattr(entry, "updated_parsed") and entry.updated_parsed:
-            published_time = datetime(*entry.updated_parsed[:6])
-        if not published_time:
-            published_time = datetime.now()
-        parsed_list.append({
-            "標題": entry.title if "title" in entry else "(無標題)",
-            "連結": entry.link if "link" in entry else "",
-            "發佈時間": published_time.strftime("%Y-%m-%d %H:%M"),
-            "來源": ""
-        })
-    return parsed_list
+for entry in entries:
+published_time = None
+if hasattr(entry, "published_parsed") and entry.published_parsed:
+published_time = datetime(*entry.published_parsed[:6])
+elif hasattr(entry, "updated_parsed") and entry.updated_parsed:
+published_time = datetime(*entry.updated_parsed[:6])
+if not published_time:
+published_time = datetime.now()
+parsed_list.append({
+"標題": entry.title if "title" in entry else "(無標題)",
+"連結": entry.link if "link" in entry else "",
+"發佈時間": published_time.strftime("%Y-%m-%d %H:%M"),
+"來源": ""
+})
+return parsed_list
 def fetch_top5_each_site():
-    all_entries=[]
+all_entries=[]
     for site, url in RSS_FEEDS.items():
         feed = feedparser.parse(url)
         if not feed.entries:
