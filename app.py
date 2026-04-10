@@ -358,10 +358,24 @@ st.download_button(
     mime="image/png"
 )
 
-# 這裡空一行
+# 下載按鈕 (PNG 格式)
+img_byte_arr_png = BytesIO()
+visual_img_selected.save(img_byte_arr_png, format='PNG') 
+img_byte_arr_png.seek(0)
+
+st.download_button(
+    label="⬇️ 下載成品 (PNG) - 無損畫質",
+    data=img_byte_arr_png.getvalue(),
+    file_name="social_image.png",
+    mime="image/png"
+)
+
+# 這裡劃分區隔線
 st.write("---")
-    # ================= 新增：JavaScript Canvas 高級圖卡產生器 =================
-st.markdown("---")
+
+# ================= 新增：JavaScript Canvas 高級圖卡產生器 =================
+import streamlit.components.v1 as components
+
 st.header("✨ 高級圖卡產生器 (Canvas 版)")
 st.info("這是使用瀏覽器硬體加速繪製的高級模板，支援半透明遮罩效果。")
 
@@ -372,7 +386,7 @@ def render_canvas_generator(title):
     canvas_html = f"""
     <div style="display: flex; flex-direction: column; align-items: center; background-color: #f8f9fa; padding: 20px; border-radius: 15px;">
         <canvas id="newsCanvas" width="800" height="450" style="border:1px solid #d3d3d3; border-radius: 10px; max-width: 100%; box-shadow: 0 8px 16px rgba(0,0,0,0.1);"></canvas>
-        <p style="color: #888; font-size: 13px; margin-top: 15px;">按右鍵可直接「另存圖片」</p>
+        <p style="color: #888; font-size: 13px; margin-top: 15px;">💡 提示：按右鍵可直接「另存圖片」</p>
     </div>
 
     <script>
@@ -386,7 +400,7 @@ def render_canvas_generator(title):
         img.src = 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=800'; 
         
         img.onload = () => {{
-            // 繪製並裁切背景
+            // 繪製背景
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
             // 2. 繪製頂部半透明遮罩
@@ -397,10 +411,9 @@ def render_canvas_generator(title):
             ctx.textAlign = 'center';
             ctx.fillStyle = 'white';
             
-            // 主標題 (自動帶入選定的文章標題)
+            // 主標題
             ctx.font = 'bold 45px "Noto Sans TC", "Microsoft JhengHei", sans-serif';
             
-            // 處理長標題自動斷行 (簡易版)
             const titleText = "{clean_title}";
             if (titleText.length > 15) {{
                 ctx.fillText(titleText.substring(0, 15), canvas.width / 2, 130);
@@ -418,6 +431,5 @@ def render_canvas_generator(title):
     """
     components.html(canvas_html, height=550)
 
-# 呼叫 Canvas 產生器，帶入當前選定的標題
+# 呼叫函式 (確保這裡後面沒有多餘的括號)
 render_canvas_generator(article_title)
-)
