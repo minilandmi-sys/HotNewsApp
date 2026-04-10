@@ -17,7 +17,7 @@ RSS_FEEDS = {
 }
 # ================= 輔助函式 (原有的 RSS 處理) =================
 def parse_entries(entries):
-   parsed_list=[]
+parsed_list=[]
     for entry in entries:
         published_time = None
         if hasattr(entry, "published_parsed") and entry.published_parsed:
