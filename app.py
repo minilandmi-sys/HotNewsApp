@@ -4,8 +4,7 @@ import pandas as pd
 from datetime import datetime
 import time
 from io import BytesIO
-from PIL import Image, ImageDraw, ImageFont 
-
+from PIL import Image, ImageDraw, ImageFont
 # 由於已移除 AI 功能，相關的 API 設定和 requests 庫已不再需要
 
 # 5 個網站的 RSS
