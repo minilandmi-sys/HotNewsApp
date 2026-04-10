@@ -1,3 +1,4 @@
+import streamlit as st  # <--- 必須加上這一行！
 # ================= 新增：JavaScript Canvas 高級圖卡產生器 =================
 st.markdown("---")
 st.header("✨ 高級圖卡產生器 (Canvas 版)")
